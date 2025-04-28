@@ -4,7 +4,7 @@
 //! This library provides functionality to search for emojis based on text input,
 //! with support for single word searches, multiple word searches, and best matching searches.
 
-use tracing::{debug, trace};
+use tracing::{debug, error, trace};
 
 pub mod constants;
 pub mod error;
@@ -12,6 +12,7 @@ pub mod search;
 pub mod utils;
 
 use constants::{EmojiData, Options};
+use emojis::get;
 use error::Result;
 use search::{match_emoji_to_words, match_emojis_to_word};
 use utils::nlp::stemmer::stem_word;
@@ -50,9 +51,13 @@ pub async fn search_emojis(
     }
 
     // Return the input itself if it is an emoji
-    if emoji_data.emoji_set.contains(&input) {
-        debug!("Input is an emoji, returning it directly");
-        return Ok(vec![input]);
+    if let Some(em) = get(input.as_str()) {
+        if emoji_data.emoji_set.contains(em) {
+            debug!("Input is a known emoji, returning it directly");
+            return Ok(vec![input]);
+        }
+    } else {
+        error!("{} is not a recongized emoji", input);
     }
 
     // Determine whether it's a single word or multiple words input

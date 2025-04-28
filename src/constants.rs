@@ -1,5 +1,6 @@
 // src/constants.rs
 use crate::error::{EmojiSearchError, Result};
+use emojis::{get, Emoji};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tracing::{error, info};
@@ -45,7 +46,7 @@ pub struct EmojiData {
     pub emoji_glossary: Arc<EmojiGlossary>,
 
     /// Set of all available emojis
-    pub emoji_set: Arc<HashSet<String>>,
+    pub emoji_set: Arc<HashSet<&'static Emoji>>,
 
     /// Map of words to their frequency rank in top 1000 words
     pub word_to_top_1000_words_idx: Arc<WordToTop1000WordsIdx>,
@@ -76,9 +77,9 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 
     // Load data from embedded JSON files
     let emoji_keywords: EmojiKeywords =
-        match serde_json::from_str::<HashMap<std::string::String, Vec<std::string::String>>>(
-            include_str!("data/emoogle-emoji-keywords.json"),
-        ) {
+        match serde_json::from_str::<HashMap<std::string::String, Vec<String>>>(include_str!(
+            "data/emoogle-emoji-keywords.json"
+        )) {
             Ok(data) => {
                 info!("Loaded emoji keywords: {} entries", data.len());
                 data
@@ -100,7 +101,7 @@ pub fn load_emoji_data() -> Result<EmojiData> {
         serde_json::from_str(include_str!("data/top-1000-words-by-frequency.json"))?;
 
     // Create emoji set from keys of emoji_keywords
-    let emoji_set: HashSet<String> = emoji_keywords.keys().cloned().collect();
+    let emoji_set: HashSet<&'static Emoji> = emoji_keywords.keys().filter_map(|s| get(s)).collect();
 
     // Create map from words to their index in top 1000 words
     let word_to_top_1000_words_idx: WordToTop1000WordsIdx = top_1000_words
