@@ -3,6 +3,6 @@ mod best_matching;
 mod multiple_words;
 mod single_word;
 
-pub use best_matching::search_best_matching_emojis_for_multiple_words;
-pub use multiple_words::search_emojis_for_multiple_words_input;
-pub use single_word::search_emojis_for_single_word_input;
+pub use best_matching::match_emoji_to_words;
+pub use multiple_words::match_emojis_to_words_raw;
+pub use single_word::match_emojis_to_word;

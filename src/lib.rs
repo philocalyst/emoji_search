@@ -13,10 +13,7 @@ pub mod utils;
 
 use constants::{EmojiData, Options};
 use error::Result;
-use search::{
-    search_best_matching_emojis_for_multiple_words, search_emojis_for_multiple_words_input,
-    search_emojis_for_single_word_input,
-};
+use search::{match_emoji_to_words, match_emojis_to_word};
 use utils::nlp::stemmer::stem_word;
 use utils::preprocess::pre_process_string;
 
@@ -63,10 +60,10 @@ pub async fn search_emojis(
 
     let results = if is_single_word_input {
         trace!("Processing as single word input");
-        search_emojis_for_single_word_input(&input, emoji_data, &options).await
+        match_emojis_to_word(&input, emoji_data, &options).await
     } else {
         trace!("Processing as multiple words input");
-        search_emojis_for_multiple_words_input(&input, emoji_data, &options).await
+        match_emoji_to_words(&input, emoji_data, &options).await
     };
 
     // Truncate results to the specified limit
@@ -112,14 +109,13 @@ pub async fn search_best_matching_emojis(
 
     let results = if is_single_word_input {
         trace!("Processing best matching for single word input");
-        let mut emojis = search_emojis_for_single_word_input(&input, emoji_data, &options).await;
+        let mut emojis = match_emojis_to_word(&input, emoji_data, &options).await;
 
         // If no results, try with stemmed input
         if emojis.is_empty() {
             let stemmed_input = stem_word(&input);
             if stemmed_input != input {
-                emojis =
-                    search_emojis_for_single_word_input(&stemmed_input, emoji_data, &options).await;
+                emojis = match_emojis_to_word(&stemmed_input, emoji_data, &options).await;
             }
         }
 
@@ -127,11 +123,11 @@ pub async fn search_best_matching_emojis(
     } else {
         trace!("Processing best matching for multiple words input");
         // First try regular multiple words search
-        let emojis = search_emojis_for_multiple_words_input(&input, emoji_data, &options).await;
+        let emojis = match_emoji_to_words(&input, emoji_data, &options).await;
 
         // If no results, fall back to best matching search
         if emojis.is_empty() {
-            search_best_matching_emojis_for_multiple_words(&input, emoji_data, &options).await
+            match_emoji_to_words(&input, emoji_data, &options).await
         } else {
             emojis
         }

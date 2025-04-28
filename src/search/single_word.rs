@@ -19,7 +19,7 @@ struct Attributes {
 }
 
 /// Search emojis for a single word input, e.g. "dog"
-pub async fn search_emojis_for_single_word_input(
+pub async fn match_emojis_to_word(
     input_word: &str,
     emoji_data: &EmojiData,
     options: &Options,

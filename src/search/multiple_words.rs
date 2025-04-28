@@ -18,7 +18,7 @@ struct Attributes {
 }
 
 /// Search emojis for an input with multiple words, e.g. "smiling face"
-pub async fn search_emojis_for_multiple_words_input(
+pub async fn match_emojis_to_words_raw(
     input_words: &str,
     emoji_data: &EmojiData,
     options: &Options,

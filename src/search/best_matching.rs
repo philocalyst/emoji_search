@@ -20,7 +20,7 @@ struct Attributes {
 ///
 /// This is a more forgiving search that also matches stemmed words
 /// by stripping suffixes, and handles parts of speech filtering.
-pub async fn search_best_matching_emojis_for_multiple_words(
+pub async fn match_emoji_to_words(
     input_words: &str,
     emoji_data: &EmojiData,
     options: &Options,
