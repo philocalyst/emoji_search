@@ -3,19 +3,19 @@ use crate::error::{EmojiSearchError, Result};
 use emojis::{get, Emoji};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// Map from emoji to its keywords
-pub type EmojiKeywords = HashMap<String, Vec<String>>;
+pub type EmojiKeywords = HashMap<&'static Emoji, Vec<String>>;
 
 /// Map from keyword to most relevant emoji
-pub type KeywordMostRelevantEmoji = HashMap<String, String>;
+pub type KeywordMostRelevantEmoji = HashMap<String, &'static Emoji>;
 
 /// Map from keyword to emojis that match the keyword
-pub type EmojiGlossary = HashMap<String, Vec<String>>;
+pub type EmojiGlossary = HashMap<String, Vec<&'static Emoji>>;
 
 /// Map of words to their index in top 1000 words
-pub type WordToTop1000WordsIdx = HashMap<String, usize>;
+pub type WordToTop1000WordsIdx = HashMap<&'static Emoji, usize>;
 
 /// Options for customizing emoji search
 #[derive(Clone, Debug, Default)]
@@ -75,13 +75,13 @@ impl EmojiData {
 pub fn load_emoji_data() -> Result<EmojiData> {
     info!("Loading emoji data from embedded resources");
 
-    // Load data from embedded JSON files
-    let emoji_keywords: EmojiKeywords =
-        match serde_json::from_str::<HashMap<std::string::String, Vec<String>>>(include_str!(
+    // First, parse the JSON into a temporary HashMap with String keys
+    let emoji_json_data: HashMap<String, Vec<String>> =
+        match serde_json::from_str::<HashMap<String, Vec<String>>>(include_str!(
             "data/emoogle-emoji-keywords.json"
         )) {
             Ok(data) => {
-                info!("Loaded emoji keywords: {} entries", data.len());
+                info!("Loaded emoji keywords JSON: {} entries", data.len());
                 data
             }
             Err(e) => {
@@ -89,6 +89,22 @@ pub fn load_emoji_data() -> Result<EmojiData> {
                 return Err(EmojiSearchError::Json(e));
             }
         };
+
+    // Then convert the HashMap with String keys to one with &'static Emoji keys
+    let mut emoji_keywords: EmojiKeywords = HashMap::new();
+    for (emoji_str, keywords) in emoji_json_data {
+        // Assuming the keys in your JSON are emoji characters
+        if let Some(emoji) = emojis::get(&emoji_str) {
+            emoji_keywords.insert(emoji, keywords);
+        } else {
+            // If the keys are shortcodes instead, try this
+            if let Some(emoji) = emojis::get_by_shortcode(&emoji_str) {
+                emoji_keywords.insert(emoji, keywords);
+            } else {
+                warn!("Could not find emoji for key: {}", emoji_str);
+            }
+        }
+    }
 
     let keyword_most_relevant_emoji: KeywordMostRelevantEmoji = serde_json::from_str(
         include_str!("data/emoogle-keyword-most-relevant-emoji.json"),
@@ -101,13 +117,17 @@ pub fn load_emoji_data() -> Result<EmojiData> {
         serde_json::from_str(include_str!("data/top-1000-words-by-frequency.json"))?;
 
     // Create emoji set from keys of emoji_keywords
-    let emoji_set: HashSet<&'static Emoji> = emoji_keywords.keys().filter_map(|s| get(s)).collect();
+    let emoji_set: HashSet<&'static Emoji> = emoji_keywords.keys().copied().collect();
 
     // Create map from words to their index in top 1000 words
     let word_to_top_1000_words_idx: WordToTop1000WordsIdx = top_1000_words
-        .iter()
-        .enumerate()
-        .map(|(idx, word)| (word.clone(), idx))
+        .iter() // Gives &String
+        .enumerate() // Gives (usize, &String)
+        .filter_map(|(idx, word)| {
+            get(word)
+                // If get returns Some(emoji), map it to Some((emoji_str, idx))
+                .map(|emoji| (emoji, idx))
+        })
         .collect();
 
     info!("Emoji data loaded successfully");
