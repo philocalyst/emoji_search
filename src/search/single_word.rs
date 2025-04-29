@@ -1,6 +1,7 @@
 // src/search/single_word.rs
 use crate::constants::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
+use emojis::Emoji;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use tracing::{debug, trace};
@@ -23,7 +24,7 @@ pub async fn match_emojis_to_word(
     input_word: &str,
     emoji_data: &EmojiData,
     options: &Options,
-) -> Vec<String> {
+) -> Vec<&'static Emoji> {
     debug!("Searching emojis for single word input: {}", input_word);
 
     // Create owned copies of the option values to avoid borrowing issues
@@ -48,7 +49,7 @@ pub async fn match_emojis_to_word(
             None
         };
 
-    let mut emojis_attributes: Vec<(String, Attributes)> = Vec::new();
+    let mut emojis_attributes: Vec<(&Emoji, Attributes)> = Vec::new();
 
     // Use tokio tasks to process emojis in parallel
     let mut handles = Vec::new();
@@ -99,9 +100,9 @@ pub async fn match_emojis_to_word(
     emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
     // Extract sorted emojis
-    let results: Vec<String> = emojis_attributes
+    let results: Vec<&'static Emoji> = emojis_attributes
         .into_iter()
-        .map(|(emoji, _)| emoji)
+        .map(|(emoji, _attributes)| emoji)
         .collect();
 
     debug!(
@@ -111,15 +112,31 @@ pub async fn match_emojis_to_word(
     results
 }
 
+pub trait EmojiMapExt<V> {
+    fn get_by_unicode(&self, unicode: &str) -> Option<&V>;
+    fn get_by_shortcode(&self, shortcode: &str) -> Option<&V>;
+}
+
+// Implement the extension trait for HashMap with &'static Emoji keys and any value type
+impl<V> EmojiMapExt<V> for HashMap<&'static Emoji, V> {
+    fn get_by_unicode(&self, unicode: &str) -> Option<&V> {
+        emojis::get(unicode).and_then(|emoji| self.get(emoji))
+    }
+
+    fn get_by_shortcode(&self, shortcode: &str) -> Option<&V> {
+        emojis::get_by_shortcode(shortcode).and_then(|emoji| self.get(emoji))
+    }
+}
+
 /// Get the best attributes for an emoji based on its keywords matching the input word
 fn get_emoji_best_attributes(
     input_word: &str,
-    emoji: &str,
+    emoji: &'static Emoji,
     keywords: &[String],
-    custom_keyword_most_relevant_emoji: &HashMap<String, String>,
-    keyword_most_relevant_emoji: &HashMap<String, String>,
+    custom_keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
+    keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
     word_to_recently_searched_inputs_idx: Option<&HashMap<String, usize>>,
-    word_to_top_1000_words_idx: &HashMap<String, usize>,
+    word_to_top_1000_words_idx: &HashMap<&'static Emoji, usize>,
 ) -> Option<Attributes> {
     trace!(
         "Getting best attributes for emoji {} with input {}",
@@ -145,10 +162,9 @@ fn get_emoji_best_attributes(
             }
 
             let is_exact_match = is_exact_match.unwrap();
-            let is_most_relevant_emoji =
-                keyword_most_relevant_emoji.get(&keyword) == Some(&emoji.to_string());
+            let is_most_relevant_emoji = keyword_most_relevant_emoji.get(&keyword) == Some(&emoji);
             let is_custom_most_relevant_emoji =
-                custom_keyword_most_relevant_emoji.get(&keyword) == Some(&emoji.to_string());
+                custom_keyword_most_relevant_emoji.get(&keyword) == Some(&emoji);
 
             let prefix_match_recently_searched_inputs_idx = if !is_exact_match {
                 word_to_recently_searched_inputs_idx.and_then(|map| map.get(&keyword).cloned())
@@ -157,7 +173,7 @@ fn get_emoji_best_attributes(
             };
 
             let prefix_match_top_1000_words_idx = if !is_exact_match {
-                word_to_top_1000_words_idx.get(&keyword).cloned()
+                word_to_top_1000_words_idx.get_by_unicode(&keyword).cloned()
             } else {
                 None
             };
@@ -193,10 +209,9 @@ fn get_emoji_best_attributes(
                 }
 
                 let is_exact_match = is_exact_match.unwrap();
-                let is_most_relevant_emoji =
-                    keyword_most_relevant_emoji.get(&word) == Some(&emoji.to_string());
+                let is_most_relevant_emoji = keyword_most_relevant_emoji.get(&word) == Some(&emoji);
                 let is_custom_most_relevant_emoji =
-                    custom_keyword_most_relevant_emoji.get(&word) == Some(&emoji.to_string());
+                    custom_keyword_most_relevant_emoji.get(&word) == Some(&emoji);
 
                 let prefix_match_recently_searched_inputs_idx = if !is_exact_match {
                     word_to_recently_searched_inputs_idx.and_then(|map| map.get(&word).cloned())
@@ -205,7 +220,7 @@ fn get_emoji_best_attributes(
                 };
 
                 let prefix_match_top_1000_words_idx = if !is_exact_match {
-                    word_to_top_1000_words_idx.get(&word).cloned()
+                    word_to_top_1000_words_idx.get_by_unicode(&word).cloned()
                 } else {
                     None
                 };
