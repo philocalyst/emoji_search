@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tracing::{debug, trace};
 
 /// Attributes for ranking emojis in single word search
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 struct Attributes {
     is_exact_match: bool,
     is_custom_most_relevant_emoji: bool,
@@ -15,8 +15,8 @@ struct Attributes {
     is_emoji_name: bool,
     is_single_word: bool,
     match_word: String,
-    prefix_match_recently_searched_inputs_idx: Option<usize>,
-    prefix_match_top_1000_words_idx: Option<usize>,
+    prefix_match_recently_searched_inputs_idx: Option<u32>,
+    prefix_match_top_1000_words_idx: Option<u32>,
 }
 
 /// Search emojis for a single word input, e.g. "dog"
@@ -55,7 +55,7 @@ pub async fn match_emojis_to_word(
     let mut handles = Vec::new();
 
     for (emoji, keywords) in emoji_data.emoji_keywords.iter() {
-        let emoji = emoji.clone();
+        let emoji = emoji.to_owned();
         let keywords = keywords.clone();
         let custom_keywords = custom_emoji_keywords.get(&emoji).cloned();
         let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
@@ -112,22 +112,6 @@ pub async fn match_emojis_to_word(
     results
 }
 
-pub trait EmojiMapExt<V> {
-    fn get_by_unicode(&self, unicode: &str) -> Option<&V>;
-    fn get_by_shortcode(&self, shortcode: &str) -> Option<&V>;
-}
-
-// Implement the extension trait for HashMap with &'static Emoji keys and any value type
-impl<V> EmojiMapExt<V> for HashMap<&'static Emoji, V> {
-    fn get_by_unicode(&self, unicode: &str) -> Option<&V> {
-        emojis::get(unicode).and_then(|emoji| self.get(emoji))
-    }
-
-    fn get_by_shortcode(&self, shortcode: &str) -> Option<&V> {
-        emojis::get_by_shortcode(shortcode).and_then(|emoji| self.get(emoji))
-    }
-}
-
 /// Get the best attributes for an emoji based on its keywords matching the input word
 fn get_emoji_best_attributes(
     input_word: &str,
@@ -136,7 +120,7 @@ fn get_emoji_best_attributes(
     custom_keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
     keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
     word_to_recently_searched_inputs_idx: Option<&HashMap<String, usize>>,
-    word_to_top_1000_words_idx: &HashMap<&'static Emoji, usize>,
+    word_to_top_1000_words_idx: &HashMap<String, usize>,
 ) -> Option<Attributes> {
     trace!(
         "Getting best attributes for emoji {} with input {}",
@@ -167,13 +151,16 @@ fn get_emoji_best_attributes(
                 custom_keyword_most_relevant_emoji.get(&keyword) == Some(&emoji);
 
             let prefix_match_recently_searched_inputs_idx = if !is_exact_match {
-                word_to_recently_searched_inputs_idx.and_then(|map| map.get(&keyword).cloned())
+                word_to_recently_searched_inputs_idx
+                    .and_then(|map| map.get(&keyword).map(|&idx| idx as u32))
             } else {
                 None
             };
 
             let prefix_match_top_1000_words_idx = if !is_exact_match {
-                word_to_top_1000_words_idx.get_by_unicode(&keyword).cloned()
+                word_to_top_1000_words_idx
+                    .get(&keyword)
+                    .map(|&idx| idx as u32)
             } else {
                 None
             };
@@ -214,13 +201,14 @@ fn get_emoji_best_attributes(
                     custom_keyword_most_relevant_emoji.get(&word) == Some(&emoji);
 
                 let prefix_match_recently_searched_inputs_idx = if !is_exact_match {
-                    word_to_recently_searched_inputs_idx.and_then(|map| map.get(&word).cloned())
+                    word_to_recently_searched_inputs_idx
+                        .and_then(|map| map.get(&word).map(|&idx| idx as u32))
                 } else {
                     None
                 };
 
                 let prefix_match_top_1000_words_idx = if !is_exact_match {
-                    word_to_top_1000_words_idx.get_by_unicode(&word).cloned()
+                    word_to_top_1000_words_idx.get(&word).map(|&idx| idx as u32)
                 } else {
                     None
                 };
