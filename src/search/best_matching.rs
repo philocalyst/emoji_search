@@ -71,7 +71,7 @@ pub async fn match_emoji_to_words(
                 &all_keywords,
             );
 
-            emoji_best_attributes.map(|attrs| (emoji.clone(), attrs))
+            emoji_best_attributes.map(|attrs| (emoji.to_owned(), attrs))
         })
         .collect();
 

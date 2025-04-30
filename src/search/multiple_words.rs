@@ -41,7 +41,7 @@ pub async fn match_emojis_to_words_raw(
     let mut handles = Vec::new();
 
     for (emoji, keywords) in emoji_data.emoji_keywords.iter() {
-        let emoji = emoji.clone();
+        let emoji = emoji.to_owned();
         let keywords = keywords.clone();
         let custom_keywords = custom_emoji_keywords.get(&emoji).cloned();
         let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
