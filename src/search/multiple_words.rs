@@ -1,7 +1,7 @@
 // src/search/multiple_words.rs
 use crate::constants::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
-use emojis::Emoji;
+use emojis::emoji::Emoji;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use tracing::{debug, trace};
@@ -23,7 +23,7 @@ pub async fn match_emojis_to_words_raw(
     input_words: &str,
     emoji_data: &EmojiData,
     options: &Options,
-) -> Vec<&'static Emoji> {
+) -> Vec<Emoji> {
     debug!("Searching emojis for multiple words input: {}", input_words);
 
     // Create owned copies of the option values to avoid borrowing issues
@@ -35,7 +35,7 @@ pub async fn match_emojis_to_words_raw(
 
     let input_words_array: Vec<String> = input_words.split(' ').map(|s| s.to_string()).collect();
 
-    let mut emojis_attributes: Vec<(&Emoji, Attributes)> = Vec::new();
+    let mut emojis_attributes: Vec<(Emoji, Attributes)> = Vec::new();
 
     // Use tokio tasks to process emojis in parallel
     let mut handles = Vec::new();
@@ -60,7 +60,7 @@ pub async fn match_emojis_to_words_raw(
             let emoji_best_attributes = get_emoji_best_attributes(
                 &input_words,
                 &input_words_array,
-                emoji,
+                &emoji,
                 &all_keywords,
                 &custom_keyword_most_relevant_emoji,
             );
@@ -82,7 +82,7 @@ pub async fn match_emojis_to_words_raw(
     emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
     // Extract sorted emojis
-    let results: Vec<&'static Emoji> = emojis_attributes
+    let results: Vec<Emoji> = emojis_attributes
         .into_iter()
         .map(|(emoji, _attributes)| emoji)
         .collect();
@@ -100,7 +100,7 @@ fn get_emoji_best_attributes(
     input_words_array: &[String],
     emoji: &Emoji,
     keywords: &[String],
-    custom_keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
+    custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
 ) -> Option<Attributes> {
     trace!(
         "Getting best attributes for emoji {} with multiple words input {}",
