@@ -1,7 +1,7 @@
 // src/search/single_word.rs
 use crate::constants::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
-use emojis::Emoji;
+use emojis::emoji::Emoji;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use tracing::{debug, trace};
@@ -24,7 +24,7 @@ pub async fn match_emojis_to_word(
     input_word: &str,
     emoji_data: &EmojiData,
     options: &Options,
-) -> Vec<&'static Emoji> {
+) -> Vec<Emoji> {
     debug!("Searching emojis for single word input: {}", input_word);
 
     // Create owned copies of the option values to avoid borrowing issues
@@ -49,7 +49,7 @@ pub async fn match_emojis_to_word(
             None
         };
 
-    let mut emojis_attributes: Vec<(&Emoji, Attributes)> = Vec::new();
+    let mut emojis_attributes: Vec<(Emoji, Attributes)> = Vec::new();
 
     // Use tokio tasks to process emojis in parallel
     let mut handles = Vec::new();
@@ -100,7 +100,7 @@ pub async fn match_emojis_to_word(
     emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
     // Extract sorted emojis
-    let results: Vec<&'static Emoji> = emojis_attributes
+    let results: Vec<Emoji> = emojis_attributes
         .into_iter()
         .map(|(emoji, _attributes)| emoji)
         .collect();
@@ -115,10 +115,10 @@ pub async fn match_emojis_to_word(
 /// Get the best attributes for an emoji based on its keywords matching the input word
 fn get_emoji_best_attributes(
     input_word: &str,
-    emoji: &'static Emoji,
+    emoji: &Emoji,
     keywords: &[String],
-    custom_keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
-    keyword_most_relevant_emoji: &HashMap<String, &'static Emoji>,
+    custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
+    keyword_most_relevant_emoji: &HashMap<String, Emoji>,
     word_to_recently_searched_inputs_idx: Option<&HashMap<String, usize>>,
     word_to_top_1000_words_idx: &HashMap<String, usize>,
 ) -> Option<Attributes> {
