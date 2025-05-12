@@ -3,7 +3,7 @@ use crate::constants::{EmojiData, Options};
 use crate::utils::nlp::parts_of_speech::filter_parts_of_speech;
 use crate::utils::nlp::stemmer::stem_word;
 use crate::utils::preprocess::pre_process_string;
-use emojis::Emoji;
+use emojis::emoji::Emoji;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use tracing::debug;
@@ -25,7 +25,7 @@ pub async fn match_emoji_to_words(
     input_words: &str,
     emoji_data: &EmojiData,
     options: &Options,
-) -> Vec<&'static Emoji> {
+) -> Vec<Emoji> {
     debug!("Searching best matching emojis for: {}", input_words);
 
     // Create owned copies of the option values to avoid borrowing issues
@@ -71,7 +71,7 @@ pub async fn match_emoji_to_words(
                 &all_keywords,
             );
 
-            emoji_best_attributes.map(|attrs| (emoji.to_owned(), attrs))
+            emoji_best_attributes.map(|attrs| (emoji, attrs))
         })
         .collect();
 
@@ -82,9 +82,10 @@ pub async fn match_emoji_to_words(
 
     // Extract sorted emojis
     // Extract sorted emojis
-    let results: Vec<&'static Emoji> = emojis_attributes
+    let results: Vec<Emoji> = emojis_attributes
         .into_iter()
         .map(|(emoji, _attributes)| emoji)
+        .cloned()
         .collect();
 
     debug!("Found {} best matching emojis", results.len());
