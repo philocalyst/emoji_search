@@ -14,8 +14,8 @@ pub mod search;
 pub mod utils;
 
 use constants::{EmojiData, Options};
-use emojis::{get, Emoji};
-use error::Result;
+use emojis::{emoji::Emoji, get};
+use error::FfiResult;
 use search::{match_emoji_to_words, match_emojis_to_word};
 use utils::nlp::stemmer::stem_word;
 use utils::preprocess::pre_process_string;
@@ -35,10 +35,10 @@ use utils::preprocess::pre_process_string;
 #[uniffi::export]
 pub async fn search_emojis(
     input: &str,
-    max_limit: Option<usize>,
+    max_limit: Option<u32>,
     options: Option<Options>,
     emoji_data: &EmojiData,
-) -> Result<Vec<&'static Emoji>> {
+) -> FfiResult<Vec<Emoji>> {
     let max_limit = max_limit.unwrap_or(24);
     let options = options.unwrap_or_default();
 
@@ -55,7 +55,7 @@ pub async fn search_emojis(
 
     // Return the input itself if it is an emoji
     if let Some(em) = get(input.as_str()) {
-        if emoji_data.emoji_set.contains(em) {
+        if emoji_data.emoji_set.contains(&em) {
             debug!("Input is a known emoji, returning it directly");
             return Ok(vec![em]);
         }
@@ -75,7 +75,7 @@ pub async fn search_emojis(
     };
 
     // Truncate results to the specified limit
-    let limited_results = results.into_iter().take(max_limit).collect();
+    let limited_results = results.into_iter().take(max_limit as usize).collect();
 
     Ok(limited_results)
 }
@@ -92,12 +92,13 @@ pub async fn search_emojis(
 ///
 /// # Returns
 /// A vector of best matching emoji strings
+#[uniffi::export]
 pub async fn search_best_matching_emojis(
     input: &str,
-    max_limit: Option<usize>,
+    max_limit: Option<u32>,
     options: Option<Options>,
     emoji_data: &EmojiData,
-) -> Result<Vec<&'static Emoji>> {
+) -> FfiResult<Vec<Emoji>> {
     let max_limit = max_limit.unwrap_or(24);
     let options = options.unwrap_or_default();
 
@@ -142,7 +143,7 @@ pub async fn search_best_matching_emojis(
     };
 
     // Truncate results to the specified limit
-    let limited_results: Vec<&'static Emoji> = results.into_iter().take(max_limit).collect();
+    let limited_results: Vec<Emoji> = results.into_iter().take(max_limit as usize).collect();
 
     Ok(limited_results)
 }
