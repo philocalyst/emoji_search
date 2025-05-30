@@ -1,0 +1,4 @@
+module emoji_searchFFI {
+    header "emoji_searchFFI.h"
+    export *
+}

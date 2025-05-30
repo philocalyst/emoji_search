@@ -1,24 +1,42 @@
 // src/constants.rs
-use crate::error::{EmojiSearchError, Result};
-use emojis::{get, Emoji};
+use crate::error::{EmojiSearchError, FfiResult};
+use bitcode::decode;
+use emojis::emoji::Emoji;
+use env_logger;
+use log::info;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use uniffi;
 
 /// Map from emoji to its keywords
-pub type EmojiKeywords = HashMap<&'static Emoji, Vec<String>>;
+pub type EmojiKeywords = HashMap<Emoji, Vec<String>>;
 
 /// Map from keyword to most relevant emoji
-pub type KeywordMostRelevantEmoji = HashMap<String, &'static Emoji>;
+pub type KeywordMostRelevantEmoji = HashMap<String, Emoji>;
 
 /// Map from keyword to emojis that match the keyword
-pub type EmojiGlossary = HashMap<String, Vec<&'static Emoji>>;
+pub type EmojiGlossary = HashMap<String, Vec<Emoji>>;
 
 /// Map of words to their index in top 1000 words
-pub type WordToTop1000WordsIdx = HashMap<&'static Emoji, usize>;
+pub type WordToTop1000WordsIdx = HashMap<String, usize>;
+
+const EMOJI_KEYWORDS_BC: &[u8] = include_bytes!(concat!(
+    env!("BITCODE_OUT_DIR"),
+    "/emoogle_emoji_keywords.bc"
+));
+const KEYWORD_MOST_RELEVANT_EMOJI_BC: &[u8] = include_bytes!(concat!(
+    env!("BITCODE_OUT_DIR"),
+    "/emoogle_keyword_most_relevant_emoji.bc"
+));
+const EMOJI_GLOSSARY_BC: &[u8] = include_bytes!(concat!(
+    env!("BITCODE_OUT_DIR"),
+    "/emoogle_emoji_glossary.bc"
+));
+const TOP_1000_WORDS_BC: &[u8] =
+    include_bytes!(concat!(env!("BITCODE_OUT_DIR"), "/top_1000_words.bc"));
 
 /// Options for customizing emoji search
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, uniffi::Record, Debug, Default)]
 pub struct Options {
     /// Custom emoji keywords to extend built-in keywords
     pub custom_emoji_keywords: Option<EmojiKeywords>,
@@ -31,7 +49,7 @@ pub struct Options {
 }
 
 /// Core data structure containing all emoji data
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, uniffi::Object)]
 pub struct EmojiData {
     /// Map from emoji to its keywords
     /// e.g. {"➕": ["plus", "add", "sum", "and", "increase", "positive", "math"]}
@@ -46,7 +64,7 @@ pub struct EmojiData {
     pub emoji_glossary: Arc<EmojiGlossary>,
 
     /// Set of all available emojis
-    pub emoji_set: Arc<HashSet<&'static Emoji>>,
+    pub emoji_set: Arc<HashSet<Emoji>>,
 
     /// Map of words to their frequency rank in top 1000 words
     pub word_to_top_1000_words_idx: Arc<WordToTop1000WordsIdx>,
@@ -72,62 +90,24 @@ impl EmojiData {
 }
 
 /// Load emoji data from embedded JSON files
-pub fn load_emoji_data() -> Result<EmojiData> {
+#[uniffi::export]
+pub fn load_emoji_data() -> FfiResult<EmojiData> {
+    use bitcode::decode;
     info!("Loading emoji data from embedded resources");
 
-    // First, parse the JSON into a temporary HashMap with String keys
-    let emoji_json_data: HashMap<String, Vec<String>> =
-        match serde_json::from_str::<HashMap<String, Vec<String>>>(include_str!(
-            "data/emoogle-emoji-keywords.json"
-        )) {
-            Ok(data) => {
-                info!("Loaded emoji keywords JSON: {} entries", data.len());
-                data
-            }
-            Err(e) => {
-                error!("Failed to parse emoji keywords: {}", e);
-                return Err(EmojiSearchError::Json(e));
-            }
-        };
+    let emoji_keywords: EmojiKeywords = decode(EMOJI_KEYWORDS_BC).expect("decode emoji keywords");
+    let keyword_most_relevant_emoji: KeywordMostRelevantEmoji =
+        decode(KEYWORD_MOST_RELEVANT_EMOJI_BC).expect("decode keyword→emoji");
+    let emoji_glossary: EmojiGlossary = decode(EMOJI_GLOSSARY_BC).expect("decode glossary");
+    let top_1000_words: Vec<String> = decode(TOP_1000_WORDS_BC).expect("decode top 1000 words");
 
-    // Then convert the HashMap with String keys to one with &'static Emoji keys
-    let mut emoji_keywords: EmojiKeywords = HashMap::new();
-    for (emoji_str, keywords) in emoji_json_data {
-        // Assuming the keys in your JSON are emoji characters
-        if let Some(emoji) = emojis::get(&emoji_str) {
-            emoji_keywords.insert(emoji, keywords);
-        } else {
-            // If the keys are shortcodes instead, try this
-            if let Some(emoji) = emojis::get_by_shortcode(&emoji_str) {
-                emoji_keywords.insert(emoji, keywords);
-            } else {
-                warn!("Could not find emoji for key: {}", emoji_str);
-            }
-        }
-    }
-
-    let keyword_most_relevant_emoji: KeywordMostRelevantEmoji = serde_json::from_str(
-        include_str!("data/emoogle-keyword-most-relevant-emoji.json"),
-    )?;
-
-    let emoji_glossary: EmojiGlossary =
-        serde_json::from_str(include_str!("data/emoogle-emoji-glossary.json"))?;
-
-    let top_1000_words: Vec<String> =
-        serde_json::from_str(include_str!("data/top-1000-words-by-frequency.json"))?;
-
-    // Create emoji set from keys of emoji_keywords
-    let emoji_set: HashSet<&'static Emoji> = emoji_keywords.keys().copied().collect();
+    let emoji_set = emoji_keywords.keys().cloned().collect();
 
     // Create map from words to their index in top 1000 words
     let word_to_top_1000_words_idx: WordToTop1000WordsIdx = top_1000_words
-        .iter() // Gives &String
-        .enumerate() // Gives (usize, &String)
-        .filter_map(|(idx, word)| {
-            get(word)
-                // If get returns Some(emoji), map it to Some((emoji_str, idx))
-                .map(|emoji| (emoji, idx))
-        })
+        .iter()
+        .enumerate()
+        .map(|(idx, word)| (word.clone(), idx)) // Swap order and clone the String
         .collect();
 
     info!("Emoji data loaded successfully");
