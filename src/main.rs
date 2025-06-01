@@ -23,13 +23,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Perform the search
     let results =
-        search_best_matching_emojis(arguments[1].as_str(), Some(400), None, &emoji_data).await?;
-    info!("Best matching search for query: {:?}", results);
+        search_best_matching_emojis(arguments[1].as_str(), Some(4), None, &emoji_data).await?;
 
-    // Serialize results to CBOR
-    let cbor_bytes = serde_cbor::to_vec(&emoji_data.emoji_set.deref())?;
-    // Emit raw CBOR to stdout
-    std::io::stdout().write_all(&cbor_bytes)?;
+    for result in results {
+        println!("{result}");
+    }
 
     info!("Example completed successfully");
     Ok(())

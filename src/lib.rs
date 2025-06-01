@@ -4,8 +4,6 @@
 //! This library provides functionality to search for emojis based on text input,
 //! with support for single word searches, multiple word searches, and best matching searches.
 
-uniffi::setup_scaffolding!();
-
 use tracing::{debug, error, trace};
 
 pub mod constants;
@@ -32,7 +30,6 @@ use utils::preprocess::pre_process_string;
 ///
 /// # Returns
 /// A vector of matching emoji strings
-#[uniffi::export]
 pub async fn search_emojis(
     input: &str,
     max_limit: Option<u32>,
@@ -92,7 +89,6 @@ pub async fn search_emojis(
 ///
 /// # Returns
 /// A vector of best matching emoji strings
-#[uniffi::export]
 pub async fn search_best_matching_emojis(
     input: &str,
     max_limit: Option<u32>,

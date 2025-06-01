@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tracing::{debug, trace};
 
 /// Attributes for ranking emojis in single word search
-#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Attributes {
     is_exact_match: bool,
     is_custom_most_relevant_emoji: bool,

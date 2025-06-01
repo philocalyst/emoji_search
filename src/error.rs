@@ -1,6 +1,5 @@
 // src/error.rs
 use thiserror::Error;
-use uniffi;
 
 /// Custom error types for the emoji search engine (internal use)
 #[derive(Error, Debug)]
@@ -21,7 +20,7 @@ pub enum EmojiSearchError {
 
 /// Error type exposed through FFI
 /// This implements all the necessary UniFFI traits
-#[derive(Debug, thiserror::Error, uniffi::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum FfiError {
     #[error("IO error")]
     Io,
