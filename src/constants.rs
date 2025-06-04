@@ -1,7 +1,7 @@
 // src/constants.rs
 use crate::error::{EmojiSearchError, Result};
+use emojis::common::EMOJIS;
 use emojis::emoji::Emoji;
-use emojis::gen::EMOJIS;
 use emojis::get;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

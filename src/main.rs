@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Perform the search
     let results =
-        search_best_matching_emojis(arguments[1].as_str(), Some(4), None, &emoji_data).await?;
+        search_best_matching_emojis(arguments[1].as_str(), Some(10), None, &emoji_data).await?;
 
     for result in results {
         println!("{result}");
