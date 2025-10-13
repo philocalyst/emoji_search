@@ -2,9 +2,9 @@ use crate::error::{EmojiSearchError, Result};
 use emoji::lookup_by_glyph::lookup;
 use emoji::Emoji;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 /// Map from emoji to its keywords
 pub type EmojiKeywords = HashMap<Emoji, Vec<String>>;
