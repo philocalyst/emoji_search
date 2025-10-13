@@ -46,7 +46,7 @@ impl EmojiSearcher {
         }
     }
 
-    pub async fn search_emojis(
+    pub fn search_emojis(
         &self,
         input: &str,
         max_limit: Option<u32>,
@@ -110,7 +110,7 @@ impl EmojiSearcher {
     ///
     /// # Returns
     /// A vector of best matching emoji strings
-    pub async fn search_best_matching_emojis(
+    pub fn search_best_matching_emojis(
         &self,
         input: &str,
         max_limit: Option<u32>,
