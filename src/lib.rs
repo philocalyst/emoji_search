@@ -3,6 +3,7 @@
 //! This library provides functionality to search for emojis based on text input,
 //! with support for single word searches, multiple word searches, and best matching searches.
 
+use emoji::lookup_by_glyph::lookup;
 use tracing::{debug, error, trace};
 
 pub mod error;
@@ -10,7 +11,7 @@ pub mod search;
 pub mod types;
 pub mod utils;
 
-use emojis::{emoji::Emoji, get};
+use emoji::{lookup_by_glyph, Emoji};
 use search::{match_emoji_to_words, match_emojis_to_word};
 use types::{EmojiData, Options};
 use utils::nlp::stemmer::stem_word;
@@ -48,7 +49,7 @@ impl EmojiSearcher {
         &self,
         input: &str,
         max_limit: Option<u32>,
-    ) -> Result<Vec<Emoji>, EmojiSearchError> {
+    ) -> Result<&[&Emoji], EmojiSearchError> {
         let max_limit = max_limit.unwrap_or(24);
         let options = &self.options;
         let emoji_data = &self.sourced_emojis;
@@ -61,14 +62,14 @@ impl EmojiSearcher {
         let input = pre_process_string(input).trim().to_string();
         if input.is_empty() {
             debug!("Empty input, returning empty results");
-            return Ok(Vec::new());
+            return Ok(&[]);
         }
 
         // Return the input itself if it is an emoji
-        if let Some(em) = get(input.as_str()) {
+        if let Some(em) = lookup(input.as_str()) {
             if emoji_data.emoji_set.contains(&em) {
                 debug!("Input is a known emoji, returning it directly");
-                return Ok(vec![em]);
+                return Ok(&[em]);
             }
         } else {
             error!("{} is not a recongized emoji", input);
@@ -107,7 +108,7 @@ impl EmojiSearcher {
         &self,
         input: &str,
         max_limit: Option<u32>,
-    ) -> Result<Vec<Emoji>, EmojiSearchError> {
+    ) -> Result<&[&Emoji], EmojiSearchError> {
         let max_limit = max_limit.unwrap_or(24);
         let options = &self.options;
         let emoji_data = &self.sourced_emojis;
@@ -120,7 +121,7 @@ impl EmojiSearcher {
         let input = pre_process_string(input).trim().to_string();
         if input.is_empty() {
             debug!("Empty input, returning empty results");
-            return Ok(Vec::new());
+            return Ok(&[]);
         }
 
         // Determine whether it's a single word or multiple words input

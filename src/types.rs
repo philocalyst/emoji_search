@@ -1,7 +1,6 @@
 use crate::error::{EmojiSearchError, Result};
-use emojis::common::EMOJIS;
-use emojis::emoji::Emoji;
-use emojis::get;
+use emoji::lookup_by_glyph::lookup;
+use emoji::Emoji;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -94,16 +93,9 @@ pub fn load_emoji_data() -> Result<EmojiData> {
     // Then convert the HashMap with String keys to one with &'static Emoji keys
     let mut emoji_keywords: EmojiKeywords = HashMap::new();
     for (emoji_str, keywords) in emoji_json_data {
-        // Assuming the keys in your JSON are emoji characters
-        if let Some(emoji) = emojis::get(&emoji_str) {
-            emoji_keywords.insert(emoji, keywords);
-        } else {
-            // If the keys are shortcodes instead, try this
-            if let Some(emoji) = emojis::get_by_shortcode(&emoji_str) {
-                emoji_keywords.insert(emoji.to_owned(), keywords);
-            } else {
-                warn!("Could not find emoji for key: {}", emoji_str);
-            }
+        // The keys in the JSON are emoji characters
+        if let Some(emoji) = lookup(&emoji_str) {
+            emoji_keywords.insert(emoji.to_owned(), keywords);
         }
     }
 
