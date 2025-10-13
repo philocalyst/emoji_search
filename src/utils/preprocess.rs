@@ -1,4 +1,3 @@
-// src/utils/preprocess.rs
 use tracing::trace;
 
 /// Pre-process a keyword string to help with search

@@ -1,4 +1,3 @@
-// src/search/mod.rs
 mod best_matching;
 mod multiple_words;
 mod single_word;

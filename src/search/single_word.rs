@@ -1,5 +1,4 @@
-// src/search/single_word.rs
-use crate::constants::{EmojiData, Options};
+use crate::types::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
 use emojis::emoji::Emoji;
 use std::cmp::Ordering;

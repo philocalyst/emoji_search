@@ -1,5 +1,4 @@
-// src/search/best_matching.rs
-use crate::constants::{EmojiData, Options};
+use crate::types::{EmojiData, Options};
 use crate::utils::nlp::parts_of_speech::filter_parts_of_speech;
 use crate::utils::nlp::stemmer::stem_word;
 use crate::utils::preprocess::pre_process_string;
