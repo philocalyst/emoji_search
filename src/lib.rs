@@ -11,7 +11,7 @@ pub mod search;
 pub mod types;
 pub mod utils;
 
-use emoji::{lookup_by_glyph, Emoji};
+use emoji::Emoji;
 use search::{match_emoji_to_words, match_emojis_to_word};
 use types::{EmojiData, Options};
 use utils::nlp::stemmer::stem_word;

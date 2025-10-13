@@ -1,6 +1,7 @@
 use crate::error::{EmojiSearchError, Result};
 use emoji::lookup_by_glyph::lookup;
 use emoji::Emoji;
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -18,7 +19,7 @@ pub type EmojiGlossary = HashMap<String, Vec<Emoji>>;
 pub type WordToTop1000WordsIdx = HashMap<String, usize>;
 
 /// Options for customizing emoji search
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Options {
     /// Custom emoji keywords to extend built-in keywords
     pub custom_emoji_keywords: Option<EmojiKeywords>,
@@ -99,12 +100,48 @@ pub fn load_emoji_data() -> Result<EmojiData> {
         }
     }
 
-    let keyword_most_relevant_emoji: KeywordMostRelevantEmoji = serde_json::from_str(
-        include_str!("../data/emoogle-keyword-most-relevant-emoji.json"),
-    )?;
+    let keyword_most_relevant_emoji_str =
+        include_str!("../data/emoogle-keyword-most-relevant-emoji.json");
+    let emoji_glossary_str = include_str!("../data/emoogle-emoji-glossary.json");
 
-    let emoji_glossary: EmojiGlossary =
-        serde_json::from_str(include_str!("../data/emoogle-emoji-glossary.json"))?;
+    let keyword_most_relevant_emoji_value: Value =
+        serde_json::from_str(keyword_most_relevant_emoji_str)?;
+    let emoji_glossary_value: Value = serde_json::from_str(emoji_glossary_str)?;
+
+    let mut keyword_most_relevant_emoji: KeywordMostRelevantEmoji = HashMap::new();
+    if let Value::Object(map) = keyword_most_relevant_emoji_value {
+        for (key, val) in map {
+            if let Value::String(emoji_glyph) = val {
+                if let Some(emoji) = lookup(&emoji_glyph) {
+                    keyword_most_relevant_emoji.insert(key, emoji.to_owned());
+                } else {
+                    eprintln!(
+                        "Warning: Emoji glyph '{}' not found in GLYPH_LOOKUP_MAP for keyword '{}'",
+                        emoji_glyph, key
+                    );
+                }
+            }
+        }
+    }
+
+    let mut emoji_glossary: EmojiGlossary = HashMap::new();
+    if let Value::Object(map) = emoji_glossary_value {
+        for (key, val) in map {
+            if let Value::Array(emoji_glyphs) = val {
+                let mut emojis_for_keyword = Vec::new();
+                for glyph_val in emoji_glyphs {
+                    if let Value::String(emoji_glyph) = glyph_val {
+                        if let Some(emoji) = lookup(&emoji_glyph) {
+                            emojis_for_keyword.push(emoji.to_owned());
+                        } else {
+                            eprintln!("Warning: Emoji glyph '{}' not found in GLYPH_LOOKUP_MAP for keyword '{}'", emoji_glyph, key);
+                        }
+                    }
+                }
+                emoji_glossary.insert(key, emojis_for_keyword);
+            }
+        }
+    }
 
     let top_1000_words: Vec<String> =
         serde_json::from_str(include_str!("../data/top-1000-words-by-frequency.json"))?;
