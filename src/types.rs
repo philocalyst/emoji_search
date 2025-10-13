@@ -19,7 +19,7 @@ pub type EmojiGlossary = HashMap<String, Vec<Emoji>>;
 pub type WordToTop1000WordsIdx = HashMap<String, usize>;
 
 /// Options for customizing emoji search
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct Options {
     /// Custom emoji keywords to extend built-in keywords
     pub custom_emoji_keywords: Option<EmojiKeywords>,
@@ -47,7 +47,7 @@ pub struct EmojiData {
     pub emoji_glossary: Arc<EmojiGlossary>,
 
     /// Set of all available emojis
-    pub emoji_set: Arc<HashSet<Emoji>>,
+    pub emoji_set: Arc<Vec<Emoji>>,
 
     /// Map of words to their frequency rank in top 1000 words
     pub word_to_top_1000_words_idx: Arc<WordToTop1000WordsIdx>,
@@ -59,7 +59,7 @@ impl EmojiData {
         let emoji_keywords = Arc::new(HashMap::new());
         let keyword_most_relevant_emoji = Arc::new(HashMap::new());
         let emoji_glossary = Arc::new(HashMap::new());
-        let emoji_set = Arc::new(HashSet::new());
+        let emoji_set = Arc::new(Vec::new());
         let word_to_top_1000_words_idx = Arc::new(HashMap::new());
 
         Self {
@@ -128,9 +128,9 @@ pub fn load_emoji_data() -> Result<EmojiData> {
         .iter() // Gives &String
         .enumerate() // Gives (usize, &String)
         .filter_map(|(idx, word)| {
-            get(word)
+            lookup(word)
                 // If get returns Some(emoji), map it to Some((emoji_str, idx))
-                .map(|emoji| (emoji.to_string(), idx))
+                .map(|emoji| (emoji.glyph.to_string(), idx))
         })
         .collect();
 
