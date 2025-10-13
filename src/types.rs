@@ -153,14 +153,10 @@ pub fn load_emoji_data() -> Result<EmojiData> {
         .collect();
 
     // Create map from words to their index in top 1000 words
-    let word_to_top_1000_words_idx: WordToTop1000WordsIdx = top_1000_words
-        .iter() // Gives &String
-        .enumerate() // Gives (usize, &String)
-        .filter_map(|(idx, word)| {
-            lookup(word)
-                // If get returns Some(emoji), map it to Some((emoji_str, idx))
-                .map(|emoji| (emoji.glyph.to_string(), idx))
-        })
+    let word_to_top_1000_words_idx: HashMap<String, usize> = top_1000_words
+        .into_iter() // Consume the Vec for efficiency
+        .enumerate()
+        .map(|(idx, word)| (word, idx)) // Map word -> idx
         .collect();
 
     info!("Emoji data loaded successfully");
