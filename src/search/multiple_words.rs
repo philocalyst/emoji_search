@@ -1,5 +1,4 @@
-// src/search/multiple_words.rs
-use crate::constants::{EmojiData, Options};
+use crate::types::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
 use emojis::emoji::Emoji;
 use std::cmp::Ordering;
@@ -20,11 +19,14 @@ struct Attributes {
 
 /// Search emojis for an input with multiple words, e.g. "smiling face"
 pub async fn match_emojis_to_words_raw(
-    input_words: &str,
+    input_words: &[String],
     emoji_data: &EmojiData,
     options: &Options,
 ) -> Vec<Emoji> {
-    debug!("Searching emojis for multiple words input: {}", input_words);
+    debug!(
+        "Searching emojis for multiple words input: {:?}",
+        input_words
+    );
 
     // Create owned copies of the option values to avoid borrowing issues
     let custom_emoji_keywords = options.custom_emoji_keywords.clone().unwrap_or_default();
@@ -32,8 +34,6 @@ pub async fn match_emojis_to_words_raw(
         .custom_keyword_most_relevant_emoji
         .clone()
         .unwrap_or_default();
-
-    let input_words_array: Vec<String> = input_words.split(' ').map(|s| s.to_string()).collect();
 
     let mut emojis_attributes: Vec<(Emoji, Attributes)> = Vec::new();
 
@@ -45,21 +45,21 @@ pub async fn match_emojis_to_words_raw(
         let keywords = keywords.clone();
         let custom_keywords = custom_emoji_keywords.get(&emoji).cloned();
         let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
-        let input_words = input_words.to_string();
-        let input_words_array = input_words_array.clone();
+
+        let input_words = input_words.to_vec();
+        let emoji = emoji.clone();
+        let all_keywords = if let Some(custom_kw) = custom_keywords {
+            let mut combined = keywords;
+            combined.extend(custom_kw);
+            combined
+        } else {
+            keywords
+        };
+        let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
 
         let handle = tokio::spawn(async move {
-            let all_keywords = if let Some(custom_kw) = custom_keywords {
-                let mut combined = keywords;
-                combined.extend(custom_kw);
-                combined
-            } else {
-                keywords
-            };
-
             let emoji_best_attributes = get_emoji_best_attributes(
                 &input_words,
-                &input_words_array,
                 &emoji,
                 &all_keywords,
                 &custom_keyword_most_relevant_emoji,
@@ -96,140 +96,118 @@ pub async fn match_emojis_to_words_raw(
 
 /// Get best attributes for emoji based on its keywords matching against input words
 fn get_emoji_best_attributes(
-    input_words: &str,
-    input_words_array: &[String],
+    input_words: &[String],
     emoji: &Emoji,
     keywords: &[String],
     custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
 ) -> Option<Attributes> {
     trace!(
-        "Getting best attributes for emoji {} with multiple words input {}",
+        "Getting best attributes for emoji {} with input words {:?}",
         emoji,
         input_words
     );
 
+    // Initalize the attributes to fill later
     let mut emoji_best_attributes: Option<Attributes> = None;
 
-    // Pre-process keywords
-    let processed_keywords: Vec<String> = keywords.iter().map(|k| pre_process_string(k)).collect();
+    // Join input words for string-based comparisons
+    let input_joined = input_words.join(" ");
 
-    // First, check for multiple words keyword matches
-    let multiple_words_keywords: Vec<String> = processed_keywords
+    // Pre-process and filter to multi-word keywords only
+    let multi_word_keywords: Vec<String> = keywords
         .iter()
+        .map(|k| pre_process_string(k))
         .filter(|k| k.contains(' '))
-        .cloned()
         .collect();
 
-    for keyword in multiple_words_keywords {
-        // Check for exact in-order match
-        if keyword == input_words {
-            let is_custom_most_relevant_emoji =
-                custom_keyword_most_relevant_emoji.get(&keyword) == Some(&emoji);
+    // Helper to update best attributes if better
+    let mut update_if_better = |attributes: Attributes| {
+        if emoji_best_attributes.is_none()
+            || compare_attributes(&attributes, emoji_best_attributes.as_ref().unwrap())
+                == Ordering::Less
+        {
+            emoji_best_attributes = Some(attributes);
+        }
+    };
 
-            let attributes = Attributes {
+    for keyword in &multi_word_keywords {
+        // Exact match
+        if keyword == &input_joined {
+            update_if_better(Attributes {
                 is_multiple_words_keyword_match: true,
                 is_multiple_words_keyword_in_order_match: true,
                 is_multiple_words_keyword_in_order_match_exact_match: true,
-                is_custom_most_relevant_emoji,
-                num_exact_matches: 0,  // Not used in this context
-                num_prefix_matches: 0, // Not used in this context
-                num_words_in_multiple_words_keyword: 0, // Not used in this context
-            };
-
-            if emoji_best_attributes.is_none()
-                || compare_attributes(&attributes, emoji_best_attributes.as_ref().unwrap())
-                    == Ordering::Less
-            {
-                emoji_best_attributes = Some(attributes);
-            }
+                is_custom_most_relevant_emoji: custom_keyword_most_relevant_emoji.get(keyword)
+                    == Some(emoji),
+                num_exact_matches: 0,
+                num_prefix_matches: 0,
+                num_words_in_multiple_words_keyword: 0,
+            });
         }
-        // Check for partial in-order match
-        else if keyword.starts_with(input_words) || keyword.contains(&format!(" {}", input_words))
+        // Partial in-order match
+        else if keyword.starts_with(&input_joined)
+            || keyword.contains(&format!(" {}", input_joined))
         {
-            let keyword_words_array: Vec<String> =
-                keyword.split(' ').map(|s| s.to_string()).collect();
+            let keyword_words: Vec<&str> = keyword.split(' ').collect();
 
-            let is_custom_most_relevant_emoji =
-                custom_keyword_most_relevant_emoji.get(&keyword) == Some(&emoji);
-
-            let attributes = Attributes {
+            update_if_better(Attributes {
                 is_multiple_words_keyword_match: true,
                 is_multiple_words_keyword_in_order_match: true,
                 is_multiple_words_keyword_in_order_match_exact_match: false,
-                is_custom_most_relevant_emoji,
-                num_exact_matches: 0,  // Not used in this context
-                num_prefix_matches: 0, // Not used in this context
-                num_words_in_multiple_words_keyword: keyword_words_array.len(),
-            };
-
-            if emoji_best_attributes.is_none()
-                || compare_attributes(&attributes, emoji_best_attributes.as_ref().unwrap())
-                    == Ordering::Less
-            {
-                emoji_best_attributes = Some(attributes);
-            }
+                is_custom_most_relevant_emoji: custom_keyword_most_relevant_emoji.get(keyword)
+                    == Some(emoji),
+                num_exact_matches: 0,
+                num_prefix_matches: 0,
+                num_words_in_multiple_words_keyword: keyword_words.len(),
+            });
         }
-        // Check for out-of-order match
+        // Out-of-order match
         else {
-            let keyword_words_array: Vec<String> =
-                keyword.split(' ').map(|s| s.to_string()).collect();
+            let keyword_words: Vec<String> = keyword.split(' ').map(|s| s.to_string()).collect();
 
-            // Skip if keyword has fewer words than input
-            if keyword_words_array.len() < input_words_array.len() {
+            if keyword_words.len() < input_words.len() {
                 continue;
             }
 
             let (num_exact_matches, num_prefix_matches) =
-                get_num_matches(input_words_array, &keyword_words_array);
+                get_num_matches(input_words, &keyword_words);
 
-            // Skip if no matches found
-            if num_exact_matches == 0 && num_prefix_matches == 0 {
-                continue;
-            }
-
-            let attributes = Attributes {
-                is_multiple_words_keyword_match: true,
-                is_multiple_words_keyword_in_order_match: false,
-                is_multiple_words_keyword_in_order_match_exact_match: false, // Not used in out-of-order match
-                is_custom_most_relevant_emoji: false, // Not used in this context
-                num_exact_matches,
-                num_prefix_matches,
-                num_words_in_multiple_words_keyword: keyword_words_array.len(),
-            };
-
-            if emoji_best_attributes.is_none()
-                || compare_attributes(&attributes, emoji_best_attributes.as_ref().unwrap())
-                    == Ordering::Less
-            {
-                emoji_best_attributes = Some(attributes);
+            if num_exact_matches > 0 || num_prefix_matches > 0 {
+                update_if_better(Attributes {
+                    is_multiple_words_keyword_match: true,
+                    is_multiple_words_keyword_in_order_match: false,
+                    is_multiple_words_keyword_in_order_match_exact_match: false,
+                    is_custom_most_relevant_emoji: false,
+                    num_exact_matches,
+                    num_prefix_matches,
+                    num_words_in_multiple_words_keyword: keyword_words.len(),
+                });
             }
         }
     }
 
-    // If no multiple words keyword match, check jointed keywords
+    // Fallback: check all individual keyword words
     if emoji_best_attributes.is_none() {
-        let jointed_keywords_set: HashSet<String> = processed_keywords
+        let all_keyword_words: Vec<String> = keywords
             .iter()
             .flat_map(|k| k.split(' ').map(|s| s.to_string()))
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect();
 
-        let jointed_keywords_array: Vec<String> = jointed_keywords_set.into_iter().collect();
-
         let (num_exact_matches, num_prefix_matches) =
-            get_num_matches(input_words_array, &jointed_keywords_array);
+            get_num_matches(input_words, &all_keyword_words);
 
         if num_exact_matches > 0 || num_prefix_matches > 0 {
-            let attributes = Attributes {
+            emoji_best_attributes = Some(Attributes {
                 is_multiple_words_keyword_match: false,
-                is_multiple_words_keyword_in_order_match: false, // Not used in jointed match
-                is_multiple_words_keyword_in_order_match_exact_match: false, // Not used in jointed match
-                is_custom_most_relevant_emoji: false, // Not used in this context
+                is_multiple_words_keyword_in_order_match: false,
+                is_multiple_words_keyword_in_order_match_exact_match: false,
+                is_custom_most_relevant_emoji: false,
                 num_exact_matches,
                 num_prefix_matches,
-                num_words_in_multiple_words_keyword: 0, // Not used in jointed match
-            };
-
-            emoji_best_attributes = Some(attributes);
+                num_words_in_multiple_words_keyword: 0,
+            });
         }
     }
 
