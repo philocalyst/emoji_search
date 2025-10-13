@@ -19,6 +19,7 @@ use utils::preprocess::pre_process_string;
 
 use crate::error::EmojiSearchError;
 
+#[derive(Clone)]
 pub struct EmojiSearcher {
     sourced_emojis: EmojiData,
     options: Options,
@@ -37,6 +38,13 @@ pub struct EmojiSearcher {
 /// # Returns
 /// A vector of matching emoji strings
 impl EmojiSearcher {
+    pub fn new(data: EmojiData, options: Option<Options>) -> Self {
+        EmojiSearcher {
+            sourced_emojis: data,
+            options: options.unwrap_or_default(),
+        }
+    }
+
     pub async fn search_emojis(
         &self,
         input: &str,
