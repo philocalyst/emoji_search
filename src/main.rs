@@ -1,12 +1,10 @@
 use emoji_search::{
     constants::{self},
-    search_best_matching_emojis, search_emojis,
+    EmojiSearcher,
 };
 use env_logger;
 use log::info;
-use serde_cbor;
-use std::io::Write;
-use std::{env::args, ops::Deref};
+use std::env::args;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,9 +19,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Collect CLI args
     let arguments: Vec<String> = args().collect();
 
+    // Build matcher
+    let matcher = EmojiSearcher::new(emoji_data, None);
+
     // Perform the search
-    let results =
-        search_best_matching_emojis(arguments[1].as_str(), Some(10), None, &emoji_data).await?;
+    let results = matcher
+        .search_best_matching_emojis(arguments[1].as_str(), Some(10))
+        .await?;
 
     for result in results {
         println!("{result}");
