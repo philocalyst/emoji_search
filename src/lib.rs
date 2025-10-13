@@ -12,12 +12,13 @@ pub mod types;
 pub mod utils;
 
 use emoji::Emoji;
-use search::{match_emoji_to_words, match_emojis_to_word};
 use types::{EmojiData, Options};
 use utils::nlp::stemmer::stem_word;
 use utils::preprocess::pre_process_string;
 
 use crate::error::EmojiSearchError;
+use crate::search::best_matching::search_for_words;
+use crate::search::single_word::search_for_word;
 
 #[derive(Clone)]
 pub struct EmojiSearcher {
@@ -49,7 +50,7 @@ impl EmojiSearcher {
         &self,
         input: &str,
         max_limit: Option<u32>,
-    ) -> Result<&[&Emoji], EmojiSearchError> {
+    ) -> Result<Vec<&Emoji>, EmojiSearchError> {
         let max_limit = max_limit.unwrap_or(24);
         let options = &self.options;
         let emoji_data = &self.sourced_emojis;
@@ -59,31 +60,36 @@ impl EmojiSearcher {
             input, max_limit
         );
 
-        let input = pre_process_string(input).trim().to_string();
         if input.is_empty() {
             debug!("Empty input, returning empty results");
-            return Ok(&[]);
+            return Ok([].into());
         }
 
         // Return the input itself if it is an emoji
-        if let Some(em) = lookup(input.as_str()) {
+        if let Some(em) = lookup(input) {
             if emoji_data.emoji_set.contains(&em) {
                 debug!("Input is a known emoji, returning it directly");
-                return Ok(&[em]);
+                return Ok([em].into());
             }
         } else {
             error!("{} is not a recongized emoji", input);
         }
 
+        let processed_input = pre_process_string(input);
+
+        // TODO: Determine if double whitespace is two words or reduced
+        let input: Vec<&str> = processed_input.split_whitespace().collect();
+
         // Determine whether it's a single word or multiple words input
-        let is_single_word_input = !input.contains(' ');
+        let is_single_word_input = input.len() > 1;
 
         let results = if is_single_word_input {
+            let input = input[0];
             trace!("Processing as single word input");
-            match_emojis_to_word(&input, emoji_data, &options).await
+            search_for_word(&input, emoji_data, &options)
         } else {
             trace!("Processing as multiple words input");
-            match_emoji_to_words(&input, emoji_data, &options).await
+            search_for_words(&input, emoji_data, &options)
         };
 
         // Truncate results to the specified limit
@@ -108,7 +114,7 @@ impl EmojiSearcher {
         &self,
         input: &str,
         max_limit: Option<u32>,
-    ) -> Result<&[&Emoji], EmojiSearchError> {
+    ) -> Result<Vec<&Emoji>, EmojiSearchError> {
         let max_limit = max_limit.unwrap_or(24);
         let options = &self.options;
         let emoji_data = &self.sourced_emojis;
@@ -121,7 +127,7 @@ impl EmojiSearcher {
         let input = pre_process_string(input).trim().to_string();
         if input.is_empty() {
             debug!("Empty input, returning empty results");
-            return Ok(&[]);
+            return Ok([].into());
         }
 
         // Determine whether it's a single word or multiple words input
@@ -129,13 +135,13 @@ impl EmojiSearcher {
 
         let results = if is_single_word_input {
             trace!("Processing best matching for single word input");
-            let mut emojis = match_emojis_to_word(&input, emoji_data, &options).await;
+            let mut emojis = search_for_word(&input, emoji_data, &options);
 
             // If no results, try with stemmed input
             if emojis.is_empty() {
                 let stemmed_input = stem_word(&input);
                 if stemmed_input != input {
-                    emojis = match_emojis_to_word(&stemmed_input, emoji_data, &options).await;
+                    emojis = search_for_word(&stemmed_input, emoji_data, &options);
                 }
             }
 
@@ -143,18 +149,18 @@ impl EmojiSearcher {
         } else {
             trace!("Processing best matching for multiple words input");
             // First try regular multiple words search
-            let emojis = match_emoji_to_words(&input, emoji_data, &options).await;
+            let emojis = search_for_word(&input, emoji_data, &options);
 
             // If no results, fall back to best matching search
             if emojis.is_empty() {
-                match_emoji_to_words(&input, emoji_data, &options).await
+                search_for_word(&input, emoji_data, &options)
             } else {
                 emojis
             }
         };
 
         // Truncate results to the specified limit
-        let limited_results: Vec<Emoji> = results.into_iter().take(max_limit as usize).collect();
+        let limited_results: Vec<&Emoji> = results.into_iter().take(max_limit as usize).collect();
 
         Ok(limited_results)
     }

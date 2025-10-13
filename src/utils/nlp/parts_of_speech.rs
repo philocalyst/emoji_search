@@ -139,7 +139,7 @@ static OTHERS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 /// Filter out words that are pronouns, prepositions, conjunctions, articles or some others.
 ///
 /// This helps focus search on meaningful content words rather than function words.
-pub fn filter_parts_of_speech(words: &[String]) -> Vec<String> {
+pub fn filter_parts_of_speech(words: &[&str]) -> Vec<String> {
     trace!("Filtering parts of speech from: {:?}", words);
 
     let filtered = words
