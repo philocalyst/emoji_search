@@ -19,20 +19,31 @@ struct Attributes {
 }
 
 /// Search emojis for a single word input, e.g. "dog"
-pub async fn match_emojis_to_word(
+pub fn search_for_word<'a>(
     input_word: &str,
-    emoji_data: &EmojiData,
+    emoji_data: &'a EmojiData, // Added 'a to fix lifetime
     options: &Options,
-) -> Vec<Emoji> {
+) -> Vec<&'a Emoji> {
     debug!("Searching emojis for single word input: {}", input_word);
 
-    // Create owned copies of the option values to avoid borrowing issues
-    let custom_emoji_keywords = options.custom_emoji_keywords.clone().unwrap_or_default();
+    // Empty collections for fallback
+    let empty_keywords_map: HashMap<Emoji, Vec<String>> = HashMap::new(); // Adjust types to match your EmojiKeywords
+    let empty_relevant_map: HashMap<String, Emoji> = HashMap::new(); // Adjust to match KeywordMostRelevantEmoji
+    let empty_vec: Vec<String> = Vec::new();
+
+    // Borrow against the fallbacks
+    let custom_emoji_keywords = options
+        .custom_emoji_keywords
+        .as_ref()
+        .unwrap_or(&empty_keywords_map);
     let custom_keyword_most_relevant_emoji = options
         .custom_keyword_most_relevant_emoji
-        .clone()
-        .unwrap_or_default();
-    let recently_searched_inputs = options.recently_searched_inputs.clone().unwrap_or_default();
+        .as_ref()
+        .unwrap_or(&empty_relevant_map);
+    let recently_searched_inputs = options
+        .recently_searched_inputs
+        .as_ref()
+        .unwrap_or(&empty_vec);
 
     // Create map from words to recently searched indices
     let word_to_recently_searched_inputs_idx: Option<HashMap<String, usize>> =
@@ -41,65 +52,51 @@ pub async fn match_emojis_to_word(
                 recently_searched_inputs
                     .iter()
                     .enumerate()
-                    .map(|(idx, input)| (input.clone(), idx))
+                    .map(|(idx, input)| (input.clone(), idx)) // Only clone strings here, unavoidable
                     .collect(),
             )
         } else {
             None
         };
 
-    let mut emojis_attributes: Vec<(Emoji, Attributes)> = Vec::new();
-
-    // Use tokio tasks to process emojis in parallel
-    let mut handles = Vec::new();
-
-    for (emoji, keywords) in emoji_data.emoji_keywords.iter() {
-        let emoji = emoji.to_owned();
-        let keywords = keywords.clone();
-        let custom_keywords = custom_emoji_keywords.get(&emoji).cloned();
-        let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
-        let keyword_most_relevant_emoji = emoji_data.keyword_most_relevant_emoji.clone();
-        let word_to_recently_searched_inputs_idx = word_to_recently_searched_inputs_idx.clone();
-        let word_to_top_1000_words_idx = emoji_data.word_to_top_1000_words_idx.clone();
-        let input_word = input_word.to_string();
-
-        let handle = tokio::spawn(async move {
-            let all_keywords = if let Some(custom_kw) = custom_keywords {
-                let mut combined = keywords;
-                combined.extend(custom_kw);
+    // Parallel iteration with Rayon
+    let emojis_attributes: Vec<(&'a Emoji, Attributes)> = emoji_data
+        .emoji_keywords
+        .par_iter()
+        .filter_map(|(emoji, keywords)| {
+            // Combine keywords (clone only if custom exists—minimal)
+            let all_keywords = if let Some(custom_kw) = custom_emoji_keywords.get(emoji) {
+                let mut combined = keywords.clone(); // Clone vec only when needed
+                combined.extend_from_slice(custom_kw);
                 combined
             } else {
-                keywords
+                keywords.clone()
             };
 
-            let emoji_best_attributes = get_emoji_best_attributes(
-                &input_word,
-                &emoji,
+            // Refs to shared data
+            let keyword_most_relevant_emoji = &*emoji_data.keyword_most_relevant_emoji;
+            let word_to_top_1000_words_idx = &*emoji_data.word_to_top_1000_words_idx;
+            let recent_idx_ref = word_to_recently_searched_inputs_idx.as_ref();
+
+            get_emoji_best_attributes(
+                input_word,
+                emoji,
                 &all_keywords,
-                &custom_keyword_most_relevant_emoji,
-                &keyword_most_relevant_emoji,
-                word_to_recently_searched_inputs_idx.as_ref(),
-                &word_to_top_1000_words_idx,
-            );
-
-            emoji_best_attributes.map(|attrs| (emoji, attrs))
-        });
-
-        handles.push(handle);
-    }
-
-    // Collect results from all tasks
-    for handle in handles {
-        if let Ok(Some((emoji, attributes))) = handle.await {
-            emojis_attributes.push((emoji, attributes));
-        }
-    }
+                custom_keyword_most_relevant_emoji,
+                keyword_most_relevant_emoji,
+                recent_idx_ref,
+                word_to_top_1000_words_idx,
+            )
+            .map(|attrs| (emoji, attrs))
+        })
+        .collect();
 
     // Sort emojis by attributes
+    let mut emojis_attributes = emojis_attributes; // Make mutable for sorting
     emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
     // Extract sorted emojis
-    let results: Vec<Emoji> = emojis_attributes
+    let results: Vec<&'a Emoji> = emojis_attributes
         .into_iter()
         .map(|(emoji, _attributes)| emoji)
         .collect();
@@ -122,7 +119,7 @@ fn get_emoji_best_attributes(
     word_to_top_1000_words_idx: &HashMap<String, usize>,
 ) -> Option<Attributes> {
     trace!(
-        "Getting best attributes for emoji {} with input {}",
+        "Getting best attributes for emoji {:?} with input {}",
         emoji,
         input_word
     );
