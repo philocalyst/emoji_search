@@ -2,7 +2,7 @@ use crate::types::{EmojiData, Options};
 use crate::utils::nlp::parts_of_speech::filter_parts_of_speech;
 use crate::utils::nlp::stemmer::stem_word;
 use crate::utils::preprocess::pre_process_string;
-use emojis::emoji::Emoji;
+use emoji::Emoji;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use tracing::debug;
@@ -20,11 +20,11 @@ struct Attributes {
 ///
 /// This is a more forgiving search that also matches stemmed words
 /// by stripping suffixes, and handles parts of speech filtering.
-pub async fn match_emoji_to_words(
+pub fn search_for_word<'a>(
     input_words: &str,
-    emoji_data: &EmojiData,
+    emoji_data: &'a EmojiData,
     options: &Options,
-) -> Vec<Emoji> {
+) -> Vec<&'a Emoji> {
     debug!("Searching best matching emojis for: {}", input_words);
 
     // Create owned copies of the option values to avoid borrowing issues
@@ -47,12 +47,11 @@ pub async fn match_emoji_to_words(
     // Use rayon to process emojis in parallel
     use rayon::prelude::*;
 
-    let emoji_data_ref = &emoji_data;
     let custom_emoji_keywords_ref = &custom_emoji_keywords;
     let filtered_input_words_ref = &filtered_input_words;
     let stemmed_input_words_ref = &stemmed_input_words;
 
-    let parallel_results: Vec<_> = emoji_data_ref
+    let parallel_results: Vec<(&'a Emoji, Attributes)> = emoji_data
         .emoji_keywords
         .par_iter()
         .filter_map(|(emoji, keywords)| {
@@ -81,10 +80,9 @@ pub async fn match_emoji_to_words(
 
     // Extract sorted emojis
     // Extract sorted emojis
-    let results: Vec<Emoji> = emojis_attributes
+    let results: Vec<&'a Emoji> = emojis_attributes
         .into_iter()
         .map(|(emoji, _attributes)| emoji)
-        .cloned()
         .collect();
 
     debug!("Found {} best matching emojis", results.len());
