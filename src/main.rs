@@ -9,12 +9,10 @@ use std::env::args;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    // (Optionally initialize tracing subscriber here)
-
     info!("Starting emoji search example");
 
     // Load the emoji data (using sample data here)
-    let emoji_data = constants::load_emoji_data().unwrap();
+    let emoji_data = types::load_emoji_data().unwrap();
 
     // Collect CLI args
     let arguments: Vec<String> = args().collect();
