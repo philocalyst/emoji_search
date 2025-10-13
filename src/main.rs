@@ -1,5 +1,5 @@
 use emoji_search::{
-    constants::{self},
+    types::{self},
     EmojiSearcher,
 };
 use env_logger;

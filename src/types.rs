@@ -1,4 +1,3 @@
-// src/constants.rs
 use crate::error::{EmojiSearchError, Result};
 use emojis::common::EMOJIS;
 use emojis::emoji::Emoji;

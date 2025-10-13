@@ -1,4 +1,3 @@
-// src/lib.rs
 //! Emoji Search Engine - A library for searching emojis based on keywords
 //!
 //! This library provides functionality to search for emojis based on text input,
@@ -6,14 +5,14 @@
 
 use tracing::{debug, error, trace};
 
-pub mod constants;
 pub mod error;
 pub mod search;
+pub mod types;
 pub mod utils;
 
-use constants::{EmojiData, Options};
 use emojis::{emoji::Emoji, get};
 use search::{match_emoji_to_words, match_emojis_to_word};
+use types::{EmojiData, Options};
 use utils::nlp::stemmer::stem_word;
 use utils::preprocess::pre_process_string;
 
