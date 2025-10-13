@@ -22,7 +22,7 @@ struct Attributes {
 /// Search emojis for a single word input, e.g. "dog"
 pub fn search_for_word<'a>(
     input_word: &str,
-    emoji_data: &'a EmojiData, // Added 'a to fix lifetime
+    emoji_data: &'a EmojiData,
     options: &Options,
 ) -> Vec<&'a Emoji> {
     debug!("Searching emojis for single word input: {}", input_word);

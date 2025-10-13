@@ -20,21 +20,18 @@ struct Attributes {
 ///
 /// This is a more forgiving search that also matches stemmed words
 /// by stripping suffixes, and handles parts of speech filtering.
-pub fn search_for_word<'a>(
-    input_words: &str,
+pub fn search_for_words<'a>(
+    input_words: &[&str],
     emoji_data: &'a EmojiData,
     options: &Options,
 ) -> Vec<&'a Emoji> {
-    debug!("Searching best matching emojis for: {}", input_words);
+    debug!("Searching best matching emojis for: {:?}", input_words);
 
     // Create owned copies of the option values to avoid borrowing issues
     let custom_emoji_keywords = options.custom_emoji_keywords.clone().unwrap_or_default();
 
-    // Pre-process and split input into words
-    let input_words_array: Vec<String> = input_words.split(' ').map(|s| s.to_string()).collect();
-
     // Filter parts of speech to focus on content words
-    let filtered_input_words = filter_parts_of_speech(&input_words_array);
+    let filtered_input_words = filter_parts_of_speech(&input_words);
 
     // Stem filtered words
     let stemmed_input_words: Vec<String> = filtered_input_words

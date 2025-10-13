@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     for result in results {
-        println!("{result}");
+        println!("{result:?}");
     }
 
     info!("Example completed successfully");
