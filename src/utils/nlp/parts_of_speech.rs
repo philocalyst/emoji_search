@@ -153,17 +153,17 @@ pub fn filter_parts_of_speech(words: &[&str]) -> Vec<String> {
             };
 
             // Skip if it's a pronoun, preposition, etc.
-            !(PRONOUNS.contains(word.as_str())
-                || PREPOSITIONS.contains(word.as_str())
-                || CONJUNCTIONS.contains(word.as_str())
-                || ARTICLES.contains(word.as_str())
-                || (PREDETERMINERS.contains(word.as_str())
+            !(PRONOUNS.contains(*word)
+                || PREPOSITIONS.contains(*word)
+                || CONJUNCTIONS.contains(*word)
+                || ARTICLES.contains(*word)
+                || (PREDETERMINERS.contains(*word)
                     && !(previous_word.is_some()
                         && PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS
-                            .contains(previous_word.unwrap().as_str())))
-                || OTHERS.contains(word.as_str()))
+                            .contains(previous_word.unwrap())))
+                || OTHERS.contains(*word))
         })
-        .map(|(_, word)| word.clone())
+        .map(|(_, word)| word.clone().to_owned())
         .collect();
 
     trace!("Filtered result: {:?}", filtered);
