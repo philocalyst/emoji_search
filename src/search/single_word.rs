@@ -1,6 +1,7 @@
 use crate::types::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
-use emojis::emoji::Emoji;
+use emoji::Emoji;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use tracing::{debug, trace};

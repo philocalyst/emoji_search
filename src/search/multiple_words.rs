@@ -1,6 +1,6 @@
 use crate::types::{EmojiData, Options};
 use crate::utils::preprocess::pre_process_string;
-use emojis::emoji::Emoji;
+use emoji::Emoji;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use tracing::{debug, trace};
@@ -102,7 +102,7 @@ fn get_emoji_best_attributes(
     custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
 ) -> Option<Attributes> {
     trace!(
-        "Getting best attributes for emoji {} with input words {:?}",
+        "Getting best attributes for emoji {:?} with input words {:?}",
         emoji,
         input_words
     );
