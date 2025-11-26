@@ -1,34 +1,30 @@
-use emoji_search::{
-    types::{self},
-    EmojiSearcher,
-};
+use std::env::args;
+
+use emoji_search::{EmojiSearcher, types::{self}};
 use env_logger;
 use log::info;
-use std::env::args;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
-    info!("Starting emoji search example");
+	env_logger::init();
+	info!("Starting emoji search example");
 
-    // Load the emoji data (using sample data here)
-    let emoji_data = types::load_emoji_data().unwrap();
+	// Load the emoji data (using sample data here)
+	let emoji_data = types::load_emoji_data().unwrap();
 
-    // Collect CLI args
-    let arguments: Vec<String> = args().collect();
+	// Collect CLI args
+	let arguments: Vec<String> = args().collect();
 
-    // Build matcher
-    let matcher = EmojiSearcher::new(emoji_data, None);
+	// Build matcher
+	let matcher = EmojiSearcher::new(&emoji_data, None);
 
-    // Perform the search
-    let results = matcher
-        .search_best_matching_emojis(arguments[1].as_str(), Some(10))
-        .await?;
+	// Perform the search
+	let results = matcher.search_best_matching_emojis(arguments[1].as_str(), Some(10))?;
 
-    for result in results {
-        println!("{result:?}");
-    }
+	for result in results {
+		println!("{result:?}");
+	}
 
-    info!("Example completed successfully");
-    Ok(())
+	info!("Example completed successfully");
+	Ok(())
 }

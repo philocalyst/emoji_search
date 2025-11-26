@@ -8,14 +8,14 @@ use tracing::trace;
 /// - Replace ' with '
 /// - Convert to lowercase
 pub fn pre_process_string(s: &str) -> String {
-    trace!("Pre-processing string: {}", s);
+	trace!("Pre-processing string: {}", s);
 
-    let mut result = s.to_lowercase();
-    // Replace special characters
-    result = result.replace(&['"', '"', ':', ';', '(', ')', ',', '.', '!', '?'][..], "");
-    result = result.replace('-', " ");
-    result = result.replace('\'', "'");
+	let mut result = s.to_lowercase();
+	// Replace special characters
+	result = result.replace(&['"', '"', ':', ';', '(', ')', ',', '.', '!', '?'][..], "");
+	result = result.replace('-', " ");
+	result = result.replace('\'', "'");
 
-    trace!("Pre-processed result: {}", result);
-    result
+	trace!("Pre-processed result: {}", result);
+	result
 }
