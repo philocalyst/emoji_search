@@ -152,7 +152,7 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 	// Create emoji set from keys of emoji_keywords, skipping over variants
 	let emoji_set: Vec<Emoji> = emoji::lookup_by_glyph::iter_emoji()
         .filter(|emoji| !emoji.name.contains(":")) // Ignore variants
-        .map(|emoji| emoji.to_owned())
+        .map(|emoji| emoji.to_owned()).cloned()
         .collect();
 
 	// Create map from words to their index in top 1000 words
