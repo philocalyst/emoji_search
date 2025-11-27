@@ -18,7 +18,7 @@ struct Attributes {
 }
 
 /// Search emojis for an input with multiple words, e.g. "smiling face"
-pub async fn match_emojis_to_words_raw(
+pub fn match_emojis_to_words_raw(
 	input_words: &[String],
 	emoji_data: &EmojiData,
 	options: &Options,
@@ -32,7 +32,7 @@ pub async fn match_emojis_to_words_raw(
 
 	let mut emojis_attributes: Vec<(EmojiEntry, Attributes)> = Vec::new();
 
-	// Use tokio tasks to process emojis in parallel
+	// Process in parellel
 	let mut handles = Vec::new();
 
 	for (emoji, keywords) in emoji_data.emoji_keywords.iter() {
@@ -52,13 +52,12 @@ pub async fn match_emojis_to_words_raw(
 		};
 		let custom_keyword_most_relevant_emoji = custom_keyword_most_relevant_emoji.clone();
 
-		let handle = tokio::spawn(async move {
-			let emoji_best_attributes = get_emoji_best_attributes(
-				&input_words,
-				&emoji,
-				&all_keywords,
-				&custom_keyword_most_relevant_emoji,
-			);
+		let emoji_best_attributes = get_emoji_best_attributes(
+			&input_words,
+			&emoji,
+			&all_keywords,
+			&custom_keyword_most_relevant_emoji,
+		);
 
 		let handle = emoji_best_attributes.map(|attrs| (emoji, attrs));
 

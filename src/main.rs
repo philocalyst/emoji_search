@@ -4,8 +4,7 @@ use emoji_search::{EmojiSearcher, types::{self}};
 use env_logger;
 use log::info;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
 	env_logger::init();
 	info!("Starting emoji search example");
 
