@@ -8,7 +8,7 @@ pub enum EmojiSearchError {
 	Io(#[from] std::io::Error),
 	/// JSON parsing errors
 	#[error("JSON parsing error: {0}")]
-	Json(#[from] serde_json::Error),
+	Json(#[from] sonic_rs::Error),
 	/// Search-related errors
 	#[error("Search error: {0}")]
 	Search(String),

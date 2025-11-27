@@ -1,19 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use emoji::{Emoji, lookup_by_glyph::lookup};
-use serde_json::Value;
+use emoji::{Emoji, EmojiEntry, lookup_by_glyph::lookup};
+use sonic_rs::{Value, ValueRef};
 use tracing::{error, info};
 
 use crate::error::{EmojiSearchError, Result};
 
 /// Map from emoji to its keywords
-pub type EmojiKeywords = HashMap<Emoji, Vec<String>>;
+pub type EmojiKeywords = HashMap<EmojiEntry, Vec<String>>;
 
 /// Map from keyword to most relevant emoji
-pub type KeywordMostRelevantEmoji = HashMap<String, Emoji>;
+pub type KeywordMostRelevantEmoji = HashMap<String, EmojiEntry>;
 
 /// Map from keyword to emojis that match the keyword
-pub type EmojiGlossary = HashMap<String, Vec<Emoji>>;
+pub type EmojiGlossary = HashMap<String, Vec<EmojiEntry>>;
 
 /// Map of words to their index in top 1000 words
 pub type WordToTop1000WordsIdx = HashMap<String, usize>;
@@ -47,7 +47,7 @@ pub struct EmojiData {
 	pub emoji_glossary: Arc<EmojiGlossary>,
 
 	/// Set of all available emojis
-	pub emoji_set: Arc<Vec<Emoji>>,
+	pub emoji_set: Arc<Vec<EmojiEntry>>,
 
 	/// Map of words to their frequency rank in top 1000 words
 	pub word_to_top_1000_words_idx: Arc<WordToTop1000WordsIdx>,
@@ -78,7 +78,7 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 
 	// First, parse the JSON into a temporary HashMap with String keys
 	let emoji_json_data: HashMap<String, Vec<String>> =
-		match serde_json::from_str::<HashMap<String, Vec<String>>>(include_str!(
+		match sonic_rs::from_str::<HashMap<String, Vec<String>>>(include_str!(
 			"../data/emoogle-emoji-keywords.json"
 		)) {
 			Ok(data) => {
@@ -105,15 +105,15 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 	let emoji_glossary_str = include_str!("../data/emoogle-emoji-glossary.json");
 
 	let keyword_most_relevant_emoji_value: Value =
-		serde_json::from_str(keyword_most_relevant_emoji_str)?;
-	let emoji_glossary_value: Value = serde_json::from_str(emoji_glossary_str)?;
+		sonic_rs::from_str(keyword_most_relevant_emoji_str)?;
+	let emoji_glossary_value: Value = sonic_rs::from_str(emoji_glossary_str)?;
 
 	let mut keyword_most_relevant_emoji: KeywordMostRelevantEmoji = HashMap::new();
-	if let Value::Object(map) = keyword_most_relevant_emoji_value {
+	if let ValueRef::Object(map) = keyword_most_relevant_emoji_value.as_ref() {
 		for (key, val) in map {
-			if let Value::String(emoji_glyph) = val {
+			if let ValueRef::String(emoji_glyph) = val.as_ref() {
 				if let Some(emoji) = lookup(&emoji_glyph) {
-					keyword_most_relevant_emoji.insert(key, emoji.to_owned());
+					keyword_most_relevant_emoji.insert(key.to_string(), emoji.to_owned());
 				} else {
 					eprintln!(
 						"Warning: Emoji glyph '{}' not found in GLYPH_LOOKUP_MAP for keyword '{}'",
@@ -125,12 +125,12 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 	}
 
 	let mut emoji_glossary: EmojiGlossary = HashMap::new();
-	if let Value::Object(map) = emoji_glossary_value {
+	if let ValueRef::Object(map) = emoji_glossary_value.as_ref() {
 		for (key, val) in map {
-			if let Value::Array(emoji_glyphs) = val {
+			if let ValueRef::Array(emoji_glyphs) = val.as_ref() {
 				let mut emojis_for_keyword = Vec::new();
 				for glyph_val in emoji_glyphs {
-					if let Value::String(emoji_glyph) = glyph_val {
+					if let ValueRef::String(emoji_glyph) = glyph_val.as_ref() {
 						if let Some(emoji) = lookup(&emoji_glyph) {
 							emojis_for_keyword.push(emoji.to_owned());
 						} else {
@@ -141,19 +141,16 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 						}
 					}
 				}
-				emoji_glossary.insert(key, emojis_for_keyword);
+				emoji_glossary.insert(key.to_string(), emojis_for_keyword);
 			}
 		}
 	}
 
 	let top_1000_words: Vec<String> =
-		serde_json::from_str(include_str!("../data/top-1000-words-by-frequency.json"))?;
+		sonic_rs::from_str(include_str!("../data/top-1000-words-by-frequency.json"))?;
 
 	// Create emoji set from keys of emoji_keywords, skipping over variants
-	let emoji_set: Vec<Emoji> = emoji::lookup_by_glyph::iter_emoji()
-        .filter(|emoji| !emoji.name.contains(":")) // Ignore variants
-        .map(|emoji| emoji.to_owned()).cloned()
-        .collect();
+	let emoji_set: Vec<EmojiEntry> = emoji::lookup_by_glyph::iter_emoji().cloned().collect();
 
 	// Create map from words to their index in top 1000 words
 	let word_to_top_1000_words_idx: HashMap<String, usize> = top_1000_words
