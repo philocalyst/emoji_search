@@ -1,11 +1,9 @@
 use std::env::args;
 
 use emoji_search::{EmojiSearcher, types::{self}};
-use env_logger;
-use log::info;
+use tracing::info;
 
- fn main() -> Result<(), Box<dyn std::error::Error>> {
-	env_logger::init();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 	info!("Starting emoji search example");
 
 	// Load the emoji data (using sample data here)

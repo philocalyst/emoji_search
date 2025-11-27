@@ -12,10 +12,7 @@ thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rayon = "1.8"
-bitcode = { version = "0.6.6", features = ["serde"] }
 serde-protobuf = "0.8.2"
-log = "0.4.27"
-env_logger = "0.11.8"
 emoji = { path = "../emoji-rs/emoji"}
 gpui-component = "0.2.0"
 sonic-rs = "0.5.6"
