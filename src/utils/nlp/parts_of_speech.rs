@@ -1,10 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 
-use once_cell::sync::Lazy;
 use tracing::trace;
 
 /// Subject pronouns, object pronouns, possessive adjectives, etc.
-static PRONOUNS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+static PRONOUNS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 	[
 		"i",
 		"you",
@@ -56,7 +55,7 @@ static PRONOUNS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// Common prepositions
-static PREPOSITIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+static PREPOSITIONS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 	[
 		"about",
 		"across",
@@ -108,23 +107,23 @@ static PREPOSITIONS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
 });
 
 /// Coordinating conjunctions
-static CONJUNCTIONS: Lazy<HashSet<&'static str>> =
-	Lazy::new(|| ["for", "and", "nor", "but", "or", "yet", "so"].into_iter().collect());
+static CONJUNCTIONS: LazyLock<HashSet<&'static str>> =
+	LazyLock::new(|| ["for", "and", "nor", "but", "or", "yet", "so"].into_iter().collect());
 
 /// Articles
-static ARTICLES: Lazy<HashSet<&'static str>> =
-	Lazy::new(|| ["a", "an", "the"].into_iter().collect());
+static ARTICLES: LazyLock<HashSet<&'static str>> =
+	LazyLock::new(|| ["a", "an", "the"].into_iter().collect());
 
 /// Words that determine quantity
-static PREDETERMINERS: Lazy<HashSet<&'static str>> =
-	Lazy::new(|| ["all", "both"].into_iter().collect());
+static PREDETERMINERS: LazyLock<HashSet<&'static str>> =
+	LazyLock::new(|| ["all", "both"].into_iter().collect());
 
 /// Exceptions for predeterminers based on previous word
-static PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS: Lazy<HashSet<&'static str>> =
-	Lazy::new(|| ["calling"].into_iter().collect());
+static PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS: LazyLock<HashSet<&'static str>> =
+	LazyLock::new(|| ["calling"].into_iter().collect());
 
 /// Other common words to filter out
-static OTHERS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+static OTHERS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 	[
 		"is", "are", "was", "were", "if", "will", "would", "be", "being", "one", "have", "has", "had",
 		"can", "more", "then", "do", "don't", "first", "even", "there", "only", "also", "such", "each",

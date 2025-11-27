@@ -1582,7 +1582,6 @@ dependencies = [
  "env_logger",
  "gpui-component",
  "log",
- "once_cell",
  "rayon",
  "serde",
  "serde-protobuf",
