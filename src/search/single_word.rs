@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashMap};
 
-use emoji::Emoji;
+use emoji::{Emoji, EmojiEntry};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug, trace};
 
@@ -24,12 +24,12 @@ pub fn search_for_word<'a>(
 	input_word: &str,
 	emoji_data: &'a EmojiData,
 	options: &Options,
-) -> Vec<&'a Emoji> {
+) -> Vec<&'a EmojiEntry> {
 	debug!("Searching emojis for single word input: {}", input_word);
 
 	// Empty collections for fallback
-	let empty_keywords_map: HashMap<Emoji, Vec<String>> = HashMap::new(); // Adjust types to match your EmojiKeywords
-	let empty_relevant_map: HashMap<String, Emoji> = HashMap::new(); // Adjust to match KeywordMostRelevantEmoji
+	let empty_keywords_map: HashMap<EmojiEntry, Vec<String>> = HashMap::new(); // Adjust types to match your EmojiKeywords
+	let empty_relevant_map: HashMap<String, EmojiEntry> = HashMap::new(); // Adjust to match KeywordMostRelevantEmoji
 	let empty_vec: Vec<String> = Vec::new();
 
 	// Borrow against the fallbacks
@@ -53,7 +53,7 @@ pub fn search_for_word<'a>(
 		};
 
 	// Parallel iteration with Rayon
-	let emojis_attributes: Vec<(&'a Emoji, Attributes)> = emoji_data
+	let emojis_attributes: Vec<(&'a EmojiEntry, Attributes)> = emoji_data
 		.emoji_keywords
 		.par_iter()
 		.filter_map(|(emoji, keywords)| {
@@ -89,7 +89,7 @@ pub fn search_for_word<'a>(
 	emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
 	// Extract sorted emojis
-	let results: Vec<&'a Emoji> =
+	let results: Vec<&'a EmojiEntry> =
 		emojis_attributes.into_iter().map(|(emoji, _attributes)| emoji).collect();
 
 	debug!("Found {} matching emojis for single word input", results.len());
@@ -100,10 +100,10 @@ pub fn search_for_word<'a>(
 /// input word
 fn get_emoji_best_attributes(
 	input_word: &str,
-	emoji: &Emoji,
+	emoji: &EmojiEntry,
 	keywords: &[String],
-	custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
-	keyword_most_relevant_emoji: &HashMap<String, Emoji>,
+	custom_keyword_most_relevant_emoji: &HashMap<String, EmojiEntry>,
+	keyword_most_relevant_emoji: &HashMap<String, EmojiEntry>,
 	word_to_recently_searched_inputs_idx: Option<&HashMap<String, usize>>,
 	word_to_top_1000_words_idx: &HashMap<String, usize>,
 ) -> Option<Attributes> {

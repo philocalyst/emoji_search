@@ -4,7 +4,7 @@
 //! input, with support for single word searches, multiple word searches, and
 //! best matching searches.
 
-use emoji::lookup_by_glyph::lookup;
+use emoji::{EmojiEntry, lookup_by_glyph::lookup};
 use tracing::{debug, error, trace};
 
 pub mod error;
@@ -45,7 +45,7 @@ impl EmojiSearcher {
 		&self,
 		input: &str,
 		max_limit: Option<u32>,
-	) -> Result<Vec<&Emoji>, EmojiSearchError> {
+	) -> Result<Vec<EmojiEntry>, EmojiSearchError> {
 		let max_limit = max_limit.unwrap_or(24);
 		let options = &self.options;
 		let emoji_data = &self.sourced_emojis;
@@ -54,14 +54,15 @@ impl EmojiSearcher {
 
 		if input.is_empty() {
 			debug!("Empty input, returning empty results");
-			return Ok([].into());
+			return Ok(vec![]);
 		}
 
 		// Return the input itself if it is an emoji
+		// We ignore toned variants because the glossary doesn't care for them
 		if let Some(em) = lookup(input) {
 			if emoji_data.emoji_set.contains(&em) {
 				debug!("Input is a known emoji, returning it directly");
-				return Ok([em].into());
+				return Ok(vec![em]);
 			}
 		} else {
 			error!("{} is not a recongized emoji", input);
@@ -85,7 +86,7 @@ impl EmojiSearcher {
 		};
 
 		// Truncate results to the specified limit
-		let limited_results = results.into_iter().take(max_limit as usize).collect();
+		let limited_results = results.into_iter().take(max_limit as usize).cloned().collect();
 
 		Ok(limited_results)
 	}
@@ -106,7 +107,7 @@ impl EmojiSearcher {
 		&self,
 		input: &str,
 		max_limit: Option<u32>,
-	) -> Result<Vec<&Emoji>, EmojiSearchError> {
+	) -> Result<Vec<&EmojiEntry>, EmojiSearchError> {
 		let max_limit = max_limit.unwrap_or(24);
 		let options = &self.options;
 		let emoji_data = &self.sourced_emojis;
@@ -145,7 +146,7 @@ impl EmojiSearcher {
 		};
 
 		// Truncate results to the specified limit
-		let limited_results: Vec<&Emoji> = results.into_iter().take(max_limit as usize).collect();
+		let limited_results: Vec<&EmojiEntry> = results.into_iter().take(max_limit as usize).collect();
 
 		Ok(limited_results)
 	}

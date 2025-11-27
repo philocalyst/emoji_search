@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashSet};
 
-use emoji::Emoji;
+use emoji::{Emoji, EmojiEntry};
 use tracing::debug;
 
 use crate::{types::{EmojiData, Options}, utils::{nlp::{parts_of_speech::filter_parts_of_speech, stemmer::stem_word}, preprocess::pre_process_string}};
@@ -22,7 +22,7 @@ pub fn search_for_words<'a>(
 	input_words: &[&str],
 	emoji_data: &'a EmojiData,
 	options: &Options,
-) -> Vec<&'a Emoji> {
+) -> Vec<&'a EmojiEntry> {
 	debug!("Searching best matching emojis for: {:?}", input_words);
 
 	// Create owned copies of the option values to avoid borrowing issues
@@ -35,7 +35,7 @@ pub fn search_for_words<'a>(
 	let stemmed_input_words: Vec<String> =
 		filtered_input_words.iter().map(|word| stem_word(word)).collect();
 
-	let mut emojis_attributes: Vec<(&Emoji, Attributes)> = Vec::new();
+	let mut emojis_attributes: Vec<(&EmojiEntry, Attributes)> = Vec::new();
 
 	// Use rayon to process emojis in parallel
 	use rayon::prelude::*;
@@ -44,7 +44,7 @@ pub fn search_for_words<'a>(
 	let filtered_input_words_ref = &filtered_input_words;
 	let stemmed_input_words_ref = &stemmed_input_words;
 
-	let parallel_results: Vec<(&'a Emoji, Attributes)> = emoji_data
+	let parallel_results: Vec<(&'a EmojiEntry, Attributes)> = emoji_data
 		.emoji_keywords
 		.par_iter()
 		.filter_map(|(emoji, keywords)| {
@@ -70,7 +70,7 @@ pub fn search_for_words<'a>(
 
 	// Extract sorted emojis
 	// Extract sorted emojis
-	let results: Vec<&'a Emoji> =
+	let results: Vec<&'a EmojiEntry> =
 		emojis_attributes.into_iter().map(|(emoji, _attributes)| emoji).collect();
 
 	debug!("Found {} best matching emojis", results.len());
