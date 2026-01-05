@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashSet};
 
-use emoji::{Emoji, EmojiEntry};
+use emoji::EmojiEntry;
 use tracing::debug;
 
 use crate::{types::{EmojiData, Options}, utils::{nlp::{parts_of_speech::filter_parts_of_speech, stemmer::stem_word}, preprocess::pre_process_string}};
@@ -88,16 +88,13 @@ fn get_emoji_best_attributes(
 	let processed_keywords: Vec<String> = keywords.iter().map(|k| pre_process_string(k)).collect();
 
 	// Create a set of all words from keywords
-	let jointed_keywords: String = processed_keywords.join(" ");
-	let jointed_keywords_array: Vec<String> =
-		jointed_keywords.split(' ').map(|s| s.to_string()).collect();
-	let jointed_keywords_set: HashSet<String> = jointed_keywords_array.iter().cloned().collect();
+	let jointed_keywords_set: HashSet<&String> = processed_keywords.iter().collect();
 
 	// Get match counts
 	let attributes = get_num_matches(
 		input_words_array,
 		stemmed_input_words_array,
-		&jointed_keywords_array,
+		&processed_keywords,
 		&jointed_keywords_set,
 	);
 
@@ -119,7 +116,7 @@ fn get_num_matches(
 	input_words_array: &[String],
 	stemmed_input_words_array: &[String],
 	keywords_array: &[String],
-	keywords_set: &HashSet<String>,
+	keywords_set: &HashSet<&String>,
 ) -> Attributes {
 	let mut num_exact_word_matches = 0;
 	let mut num_exact_stemmed_word_matches = 0;
