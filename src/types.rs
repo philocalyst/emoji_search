@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use emoji::{Emoji, EmojiEntry, lookup_by_glyph::lookup};
+use emoji::{EmojiEntry, lookup_by_glyph::lookup};
 use sonic_rs::{Value, ValueRef};
 use tracing::{error, info};
 

@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashMap};
 
-use emoji::{Emoji, EmojiEntry};
+use emoji::EmojiEntry;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tracing::{debug, trace};
 

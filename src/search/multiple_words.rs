@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::{HashMap, HashSet}};
 
-use emoji::{Emoji, EmojiEntry};
+use emoji::EmojiEntry;
 use tracing::{debug, trace};
 
 use crate::{types::{EmojiData, Options}, utils::preprocess::pre_process_string};

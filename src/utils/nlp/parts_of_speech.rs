@@ -157,7 +157,7 @@ pub fn filter_parts_of_speech(words: &[&str]) -> Vec<String> {
 						&& PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS.contains(previous_word.unwrap())))
 				|| OTHERS.contains(*word))
 		})
-		.map(|(_, word)| word.clone().to_owned())
+		.map(|(_, word)| (*word).to_owned())
 		.collect();
 
 	trace!("Filtered result: {:?}", filtered);

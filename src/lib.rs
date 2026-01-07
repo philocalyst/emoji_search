@@ -12,7 +12,6 @@ pub mod search;
 pub mod types;
 pub mod utils;
 
-use emoji::Emoji;
 use types::{EmojiData, Options};
 use utils::{nlp::stemmer::stem_word, preprocess::pre_process_string};
 
