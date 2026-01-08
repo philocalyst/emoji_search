@@ -1,12 +1,13 @@
 use std::{cmp::Ordering, collections::HashSet};
 
 use emoji::EmojiEntry;
+use rayon::prelude::*;
 use tracing::debug;
 
 use crate::{types::{EmojiData, Options}, utils::{nlp::{parts_of_speech::filter_parts_of_speech, stemmer::stem_word}, preprocess::pre_process_string}};
 
 /// Attributes for ranking emojis in best matching search
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 struct Attributes {
 	num_exact_word_matches:          usize,
 	num_exact_stemmed_word_matches:  usize,
@@ -33,22 +34,13 @@ pub fn search_for_words<'a>(
 
 	// Stem filtered words
 	let stemmed_input_words: Vec<String> =
-		filtered_input_words.iter().map(|word| stem_word(word)).collect();
+		filtered_input_words.iter().map(String::as_str).map(stem_word).collect();
 
-	let mut emojis_attributes: Vec<(&EmojiEntry, Attributes)> = Vec::new();
-
-	// Use rayon to process emojis in parallel
-	use rayon::prelude::*;
-
-	let custom_emoji_keywords_ref = &custom_emoji_keywords;
-	let filtered_input_words_ref = &filtered_input_words;
-	let stemmed_input_words_ref = &stemmed_input_words;
-
-	let parallel_results: Vec<(&'a EmojiEntry, Attributes)> = emoji_data
+	let mut emojis_with_attributes: Vec<(&'a EmojiEntry, Attributes)> = emoji_data
 		.emoji_keywords
 		.par_iter()
 		.filter_map(|(emoji, keywords)| {
-			let all_keywords = if let Some(custom_kw) = custom_emoji_keywords_ref.get(emoji) {
+			let all_keywords = if let Some(custom_kw) = (&custom_emoji_keywords).get(emoji) {
 				let mut combined = keywords.clone();
 				combined.extend(custom_kw.clone());
 				combined
@@ -57,21 +49,17 @@ pub fn search_for_words<'a>(
 			};
 
 			let emoji_best_attributes =
-				get_emoji_best_attributes(filtered_input_words_ref, stemmed_input_words_ref, &all_keywords);
+				get_emoji_best_attributes(&filtered_input_words, &stemmed_input_words, &all_keywords);
 
 			emoji_best_attributes.map(|attrs| (emoji, attrs))
 		})
 		.collect();
 
-	emojis_attributes.extend(parallel_results);
-
 	// Sort emojis by attributes
-	emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
+	emojis_with_attributes.sort_by(|emoji_1, emoji_2| compare_attributes(&emoji_1.1, &emoji_2.1));
 
 	// Extract sorted emojis
-	// Extract sorted emojis
-	let results: Vec<&'a EmojiEntry> =
-		emojis_attributes.into_iter().map(|(emoji, _attributes)| emoji).collect();
+	let results: Vec<&'a EmojiEntry> = emojis_with_attributes.iter().map(|(e, _)| *e).collect();
 
 	debug!("Found {} best matching emojis", results.len());
 	results
