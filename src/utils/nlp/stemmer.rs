@@ -25,34 +25,31 @@ pub fn stem_word(word: &str) -> String {
 	trace!("Stemming word: {}", word);
 
 	// Apply basic stemming
-	let mut stemmed = word.to_string();
+	let strip_suffix = |suffix, min_len, extra_cond: bool| {
+		word.strip_suffix(suffix).filter(|_| word.len() > min_len && extra_cond)
+	};
 
-	// Remove common suffixes
-	if stemmed.ends_with("ing") {
-		stemmed = stemmed[0..stemmed.len() - 3].to_string();
-	} else if stemmed.ends_with("ed") && stemmed.len() > 3 {
-		stemmed = stemmed[0..stemmed.len() - 2].to_string();
-	} else if stemmed.ends_with("s") && !stemmed.ends_with("ss") && stemmed.len() > 2 {
-		stemmed = stemmed[0..stemmed.len() - 1].to_string();
-	} else if stemmed.ends_with("ly") && stemmed.len() > 3 {
-		stemmed = stemmed[0..stemmed.len() - 2].to_string();
-	}
+	let stemmed = strip_suffix("ing", 0, true)
+		.or_else(|| strip_suffix("ed", 3, true))
+		.or_else(|| strip_suffix("s", 2, !word.ends_with("ss")))
+		.or_else(|| strip_suffix("ly", 3, true))
+		.unwrap_or(word);
 
-	// Apply custom rules
 	for &(word_suffix, stemmed_suffix, slice_end) in CUSTOM_RULES.iter() {
 		if word.ends_with(word_suffix) && (stemmed.ends_with(stemmed_suffix) || word == stemmed) {
-			if let Some(end) = slice_end {
-				if word.len() > end {
-					let result = word[0..word.len() - end].to_string();
-					trace!("Stemmed result (custom rule): {} -> {}", word, result);
-					return result;
-				}
-			} else {
-				trace!("Stemmed result (custom rule): {} -> {}", word, word);
-				return word.to_string();
-			}
+			// Resolve cut length. If Some(n) is too long for the word, skip this rule.
+			let cut = match slice_end {
+				Some(n) if word.len() > n => n,
+				None => 0,
+				_ => continue,
+			};
+
+			let result = word[..word.len() - cut].to_string();
+			trace!("Stemmed result (custom rule): {} -> {}", word, result);
+			return result;
 		}
 	}
+
 	trace!("Stemmed result: {} -> {}", word, stemmed);
-	stemmed
+	stemmed.to_string()
 }
