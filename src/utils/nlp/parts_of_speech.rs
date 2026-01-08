@@ -121,24 +121,23 @@ const OTHERS: &[&str] = &[
 /// This helps focus search on meaningful content words rather than function
 /// words.
 pub fn filter_parts_of_speech(words: &[&str]) -> Vec<String> {
+	let filter_logic = |&(index, word): &(usize, &&str)| {
+		let previous_word = if index > 0 { Some(&words[index - 1]) } else { None };
+		// Skip if it's a pronoun, preposition, etc.
+		!(PRONOUNS.contains(word)
+			|| PREPOSITIONS.contains(word)
+			|| CONJUNCTIONS.contains(word)
+			|| ARTICLES.contains(word)
+			|| (PREDETERMINERS.contains(word)
+				&& !(previous_word.is_some()
+					&& PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS.contains(previous_word.unwrap())))
+			|| OTHERS.contains(word))
+	};
+
 	trace!("Filtering parts of speech from: {:?}", words);
-	let filtered = words
-		.iter()
-		.enumerate()
-		.filter(|(idx, word)| {
-			let previous_word = if *idx > 0 { Some(&words[idx - 1]) } else { None };
-			// Skip if it's a pronoun, preposition, etc.
-			!(PRONOUNS.contains(word)
-				|| PREPOSITIONS.contains(word)
-				|| CONJUNCTIONS.contains(word)
-				|| ARTICLES.contains(word)
-				|| (PREDETERMINERS.contains(word)
-					&& !(previous_word.is_some()
-						&& PREDETERMINERS_EXCEPTIONS_PREVIOUS_WORDS.contains(previous_word.unwrap())))
-				|| OTHERS.contains(word))
-		})
-		.map(|(_, word)| (*word).to_owned())
-		.collect();
+	let filtered =
+		words.iter().enumerate().filter(filter_logic).map(|(_, word)| (*word).to_owned()).collect();
+
 	trace!("Filtered result: {:?}", filtered);
 	filtered
 }
