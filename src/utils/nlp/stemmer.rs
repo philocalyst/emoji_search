@@ -1,26 +1,21 @@
-use std::sync::LazyLock;
-
 use tracing::trace;
 
 /// Custom rules for stemming with format (suffix, stemmed_suffix,
 /// slice_position) The rules modify the stemming algorithm to work better with
 /// emoji search
-static CUSTOM_RULES: LazyLock<Vec<(&'static str, &'static str, Option<usize>)>> =
-	LazyLock::new(|| {
-		vec![
-			("y", "i", None),          // "happy" -> "happi" -> "happy"
-			("Y", "i", None),          // "DIY" -> "DIi" -> "DIY"
-			("ying", "i", Some(3)),    // "crying" -> "cri" -> "cry"
-			("yings", "i", Some(4)),   // "carryings" -> "carri" -> "carry"
-			("ing", "e", Some(3)),     // "smiling" -> "smile" -> "smil"
-			("ings", "e", Some(4)),    // "codings" -> "code" -> "cod"
-			("ingly", "e", Some(5)),   // "blazingly" -> "blaze" -> "blaz"
-			("ility", "l", Some(4)),   // "disability" -> "disabl" -> "disabi"
-			("ilities", "l", Some(6)), // "capabilities" -> "capabl" -> "capabi"
-			("ys", "i", Some(1)),      // "candys" -> "candi" -> "candy"
-			("est", "est", Some(3)),   // "coolest" -> "coolest" -> "cool"
-		]
-	});
+const CUSTOM_RULES: &[(&str, &str, Option<usize>)] = &[
+	("y", "i", None),          // "happy" -> "happi" -> "happy"
+	("Y", "i", None),          // "DIY" -> "DIi" -> "DIY"
+	("ying", "i", Some(3)),    // "crying" -> "cri" -> "cry"
+	("yings", "i", Some(4)),   // "carryings" -> "carri" -> "carry"
+	("ing", "e", Some(3)),     // "smiling" -> "smile" -> "smil"
+	("ings", "e", Some(4)),    // "codings" -> "code" -> "cod"
+	("ingly", "e", Some(5)),   // "blazingly" -> "blaze" -> "blaz"
+	("ility", "l", Some(4)),   // "disability" -> "disabl" -> "disabi"
+	("ilities", "l", Some(6)), // "capabilities" -> "capabl" -> "capabi"
+	("ys", "i", Some(1)),      // "candys" -> "candi" -> "candy"
+	("est", "est", Some(3)),   // "coolest" -> "coolest" -> "cool"
+];
 
 /// Stem a word to its root form using a simplified algorithm with custom rules
 ///
@@ -58,7 +53,6 @@ pub fn stem_word(word: &str) -> String {
 			}
 		}
 	}
-
 	trace!("Stemmed result: {} -> {}", word, stemmed);
 	stemmed
 }
