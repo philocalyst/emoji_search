@@ -2,7 +2,7 @@
 name = "emoji_search"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Miles Wirht"]
 description = "A library for searching emojis based on keywords"
 license = "MIT"
 
@@ -12,12 +12,12 @@ thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rayon = "1.8"
-emoji = { path = "../emoji-rs/emoji"}
+emoji = { git = "https://github.com/philocalyst/emoji-rs"}
 sonic-rs = "0.5.6"
 
 [build-dependencies]
 serde          = { version = "1.0", features = ["derive"] }
-emoji = { path = "../emoji-rs/emoji"}
+emoji = { git = "https://github.com/philocalyst/emoji-rs"}
 serde_json     = "1.0"
 bitcode        = { version = "0.6.6", features = ["std","serde"] }
 

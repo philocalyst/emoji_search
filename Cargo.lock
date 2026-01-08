@@ -112,6 +112,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 [[package]]
 name = "emoji"
 version = "1.0.0"
+source = "git+https://github.com/philocalyst/emoji-rs#61fc87ccfcf9fe8a60898512f8d10b1e959c9828"
 dependencies = [
  "fuzzy-matcher",
  "itertools",
