@@ -1,19 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use emoji::{EmojiEntry, lookup_by_glyph::lookup};
+use emoji::{Emoji, lookup_by_glyph::{ALL_EMOJI, lookup}};
 use sonic_rs::{Value, ValueRef};
 use tracing::{error, info};
 
 use crate::error::{EmojiSearchError, Result};
 
 /// Map from emoji to its keywords
-pub type EmojiKeywords = HashMap<EmojiEntry, Vec<String>>;
+pub type EmojiKeywords = HashMap<Emoji, Vec<String>>;
 
 /// Map from keyword to most relevant emoji
-pub type KeywordMostRelevantEmoji = HashMap<String, EmojiEntry>;
+pub type KeywordMostRelevantEmoji = HashMap<String, Emoji>;
 
 /// Map from keyword to emojis that match the keyword
-pub type EmojiGlossary = HashMap<String, Vec<EmojiEntry>>;
+pub type EmojiGlossary = HashMap<String, Vec<Emoji>>;
 
 /// Map of words to their index in top 1000 words
 pub type WordToTop1000WordsIdx = HashMap<String, usize>;
@@ -47,7 +47,7 @@ pub struct EmojiData {
 	pub emoji_glossary: Arc<EmojiGlossary>,
 
 	/// Set of all available emojis
-	pub emoji_set: Arc<Vec<EmojiEntry>>,
+	pub emoji_set: Arc<Vec<Emoji>>,
 
 	/// Map of words to their frequency rank in top 1000 words
 	pub word_to_top_1000_words_idx: Arc<WordToTop1000WordsIdx>,
@@ -149,9 +149,6 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 	let top_1000_words: Vec<String> =
 		sonic_rs::from_str(include_str!("../data/top-1000-words-by-frequency.json"))?;
 
-	// Create emoji set from keys of emoji_keywords, skipping over variants
-	let emoji_set: Vec<EmojiEntry> = emoji::lookup_by_glyph::iter_emoji().cloned().collect();
-
 	// Create map from words to their index in top 1000 words
 	let word_to_top_1000_words_idx: HashMap<String, usize> = top_1000_words
         .into_iter() // Consume the Vec for efficiency
@@ -165,7 +162,7 @@ pub fn load_emoji_data() -> Result<EmojiData> {
 		emoji_keywords:              Arc::new(emoji_keywords),
 		keyword_most_relevant_emoji: Arc::new(keyword_most_relevant_emoji),
 		emoji_glossary:              Arc::new(emoji_glossary),
-		emoji_set:                   Arc::new(emoji_set),
+		emoji_set:                   Arc::new(ALL_EMOJI.iter().cloned().cloned().collect()),
 		word_to_top_1000_words_idx:  Arc::new(word_to_top_1000_words_idx),
 	})
 }

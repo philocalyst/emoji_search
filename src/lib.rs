@@ -4,7 +4,7 @@
 //! input, with support for single word searches, multiple word searches, and
 //! best matching searches.
 
-use emoji::{EmojiEntry, lookup_by_glyph::lookup};
+use emoji::{Emoji, lookup_by_glyph::lookup};
 use tracing::{debug, error, trace};
 
 pub mod error;
@@ -44,7 +44,7 @@ impl EmojiSearcher {
 		&self,
 		input: &str,
 		max_limit: Option<u32>,
-	) -> Result<Vec<EmojiEntry>, EmojiSearchError> {
+	) -> Result<Vec<Emoji>, EmojiSearchError> {
 		let max_limit = max_limit.unwrap_or(24);
 		let options = &self.options;
 		let emoji_data = &self.sourced_emojis;
@@ -61,7 +61,7 @@ impl EmojiSearcher {
 		if let Some(em) = lookup(input) {
 			if emoji_data.emoji_set.contains(&em) {
 				debug!("Input is a known emoji, returning it directly");
-				return Ok(vec![em]);
+				return Ok(vec![em.clone()]);
 			}
 		} else {
 			error!("{} is not a recongized emoji", input);
@@ -106,7 +106,7 @@ impl EmojiSearcher {
 		&self,
 		input: &str,
 		max_limit: Option<u32>,
-	) -> Result<Vec<&EmojiEntry>, EmojiSearchError> {
+	) -> Result<Vec<&Emoji>, EmojiSearchError> {
 		let max_limit = max_limit.unwrap_or(24);
 		let options = &self.options;
 		let emoji_data = &self.sourced_emojis;
@@ -145,7 +145,7 @@ impl EmojiSearcher {
 		};
 
 		// Truncate results to the specified limit
-		let limited_results: Vec<&EmojiEntry> = results.into_iter().take(max_limit as usize).collect();
+		let limited_results: Vec<&Emoji> = results.into_iter().take(max_limit as usize).collect();
 
 		Ok(limited_results)
 	}

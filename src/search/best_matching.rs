@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::HashSet};
 
-use emoji::EmojiEntry;
+use emoji::Emoji;
 use rayon::prelude::*;
 use tracing::debug;
 
@@ -23,7 +23,7 @@ pub fn search_for_words<'a>(
 	input_words: &[&str],
 	emoji_data: &'a EmojiData,
 	options: &Options,
-) -> Vec<&'a EmojiEntry> {
+) -> Vec<&'a Emoji> {
 	debug!("Searching best matching emojis for: {:?}", input_words);
 
 	// Create owned copies of the option values to avoid borrowing issues
@@ -36,7 +36,7 @@ pub fn search_for_words<'a>(
 	let stemmed_input_words: Vec<String> =
 		filtered_input_words.iter().map(String::as_str).map(stem_word).collect();
 
-	let mut emojis_with_attributes: Vec<(&'a EmojiEntry, Attributes)> = emoji_data
+	let mut emojis_with_attributes: Vec<(&'a Emoji, Attributes)> = emoji_data
 		.emoji_keywords
 		.par_iter()
 		.filter_map(|(emoji, keywords)| {
@@ -59,7 +59,7 @@ pub fn search_for_words<'a>(
 	emojis_with_attributes.sort_by(|emoji_1, emoji_2| compare_attributes(&emoji_1.1, &emoji_2.1));
 
 	// Extract sorted emojis
-	let results: Vec<&'a EmojiEntry> = emojis_with_attributes.iter().map(|(e, _)| *e).collect();
+	let results: Vec<&'a Emoji> = emojis_with_attributes.iter().map(|(e, _)| *e).collect();
 
 	debug!("Found {} best matching emojis", results.len());
 	results

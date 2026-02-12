@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::{HashMap, HashSet}};
 
-use emoji::EmojiEntry;
+use emoji::Emoji;
 use tracing::{debug, trace};
 
 use crate::{types::{EmojiData, Options}, utils::preprocess::pre_process_string};
@@ -22,7 +22,7 @@ pub fn match_emojis_to_words_raw(
 	input_words: &[String],
 	emoji_data: &EmojiData,
 	options: &Options,
-) -> Vec<EmojiEntry> {
+) -> Vec<Emoji> {
 	debug!("Searching emojis for multiple words input: {:?}", input_words);
 
 	// Create owned copies of the option values to avoid borrowing issues
@@ -30,7 +30,7 @@ pub fn match_emojis_to_words_raw(
 	let custom_keyword_most_relevant_emoji =
 		options.custom_keyword_most_relevant_emoji.clone().unwrap_or_default();
 
-	let mut emojis_attributes: Vec<(EmojiEntry, Attributes)> = Vec::new();
+	let mut emojis_attributes: Vec<(Emoji, Attributes)> = Vec::new();
 
 	// Process in parellel
 	let mut handles = Vec::new();
@@ -75,7 +75,7 @@ pub fn match_emojis_to_words_raw(
 	emojis_attributes.sort_by(|(_, a), (_, b)| compare_attributes(a, b));
 
 	// Extract sorted emojis
-	let results: Vec<EmojiEntry> =
+	let results: Vec<Emoji> =
 		emojis_attributes.into_iter().map(|(emoji, _attributes)| emoji).collect();
 
 	debug!("Found {} matching emojis for multiple words input", results.len());
@@ -86,9 +86,9 @@ pub fn match_emojis_to_words_raw(
 /// words
 fn get_emoji_best_attributes(
 	input_words: &[String],
-	emoji: &EmojiEntry,
+	emoji: &Emoji,
 	keywords: &[String],
-	custom_keyword_most_relevant_emoji: &HashMap<String, EmojiEntry>,
+	custom_keyword_most_relevant_emoji: &HashMap<String, Emoji>,
 ) -> Option<Attributes> {
 	trace!("Getting best attributes for emoji {:?} with input words {:?}", emoji, input_words);
 
