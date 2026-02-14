@@ -1,4 +1,0 @@
-module emojisFFI {
-    header "emojisFFI.h"
-    export *
-}
